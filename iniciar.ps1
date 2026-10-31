@@ -5,15 +5,18 @@ Set-Location $PSScriptRoot
 $Host.UI.RawUI.WindowTitle = 'VL Command'
 $compose = @('compose', '-f', 'docker-compose.local.yml')
 
-# Cria o atalho na área de trabalho na primeira vez.
-$atalho = Join-Path ([Environment]::GetFolderPath('Desktop')) 'VL Command.lnk'
-if (-not (Test-Path $atalho)) {
-    $s = (New-Object -ComObject WScript.Shell).CreateShortcut($atalho)
-    $s.TargetPath = Join-Path $PSScriptRoot 'VL Command.bat'
-    $s.WorkingDirectory = $PSScriptRoot
-    $s.WindowStyle = 7  # minimizado
-    $s.Save()
-    Write-Host 'Atalho "VL Command" criado na área de trabalho.'
+# Cria o atalho na área de trabalho e no menu Iniciar (busque "VL Command" na tecla Windows).
+foreach ($pasta in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
+    $atalho = Join-Path $pasta 'VL Command.lnk'
+    if (Test-Path $atalho) { continue }
+    try {
+        $s = (New-Object -ComObject WScript.Shell).CreateShortcut($atalho)
+        $s.TargetPath = Join-Path $PSScriptRoot 'VL Command.bat'
+        $s.WorkingDirectory = $PSScriptRoot
+        $s.WindowStyle = 7  # minimizado
+        $s.Save()
+    } catch { Write-Host "Não consegui criar o atalho em $pasta : $_" }
+    if (Test-Path $atalho) { Write-Host "Atalho criado em: $atalho" }
 }
 
 function DockerPronto { docker info *> $null; return $LASTEXITCODE -eq 0 }
