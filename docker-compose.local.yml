@@ -1,0 +1,31 @@
+# Só para VER o sistema no seu computador (sem domínio, sem HTTPS, com dados de demonstração).
+#   docker compose -f docker-compose.local.yml up --build
+#   abra http://localhost:3000
+# Para apagar tudo e recomeçar: docker compose -f docker-compose.local.yml down -v
+x-app: &app
+  build: .
+  image: vl-command-local
+  environment:
+    DATABASE_URL: postgres://vlc:vlc@postgres:5432/vlc
+    APP_KEY: chave-local-somente-para-demonstracao-123
+    NODE_ENV: development   # cookie sem "Secure", pois localhost é http
+  depends_on:
+    postgres: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: vlc, POSTGRES_PASSWORD: vlc, POSTGRES_DB: vlc }
+    volumes: [pgdata-local:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "vlc"], interval: 3s, retries: 20 }
+
+  app:
+    <<: *app
+    ports: ["127.0.0.1:3000:3000"]
+    command: ["sh", "-c", "node apps/api/src/migrate.ts && node apps/api/src/cli/demo.ts && node apps/api/src/server.ts"]
+
+  worker:
+    <<: *app
+    command: ["sh", "-c", "sleep 15 && node apps/api/src/worker.ts"]  # espera a app criar o banco
+
+volumes: { pgdata-local: {} }

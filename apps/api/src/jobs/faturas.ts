@@ -22,7 +22,7 @@ export async function marcarVencidas() {
     where f.status = 'aberta' and f.vencimento < current_date and c.id = f.cliente_id
     returning f.valor_cent, f.vencimento, c.nome`);
   for (const f of vencidas) {
-    await notificar('fatura_vencida', 'aviso', `Fatura vencida: ${f.nome} — R$ ${(f.valor_cent / 100).toFixed(2)} (venc. ${f.vencimento})`, '/faturas?status=vencida');
+    await notificar('fatura_vencida', 'aviso', `Fatura vencida: ${f.nome} — ${(f.valor_cent / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} (venc. ${f.vencimento})`, '/faturas?status=vencida');
   }
 }
 

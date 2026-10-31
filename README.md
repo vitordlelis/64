@@ -6,7 +6,11 @@ segurança defensiva, agentes de IA 24/7 com aprovação humana, escritório 3D 
 **Status:** Fase 0 (fundação) e Fase 1 (MVP de gestão: login com 2FA, clientes, sistemas, contratos, faturas + Asaas,
 dashboard financeiro, uptime com semáforo e incidentes, notificações, auditoria) implementadas. Ver [plano em fases](docs/02-plano-fases.md).
 
-## Rodar localmente
+## Só quero ver o sistema
+
+Siga [docs/rodar-localmente.md](docs/rodar-localmente.md): Docker Desktop + um comando, com dados de demonstração.
+
+## Rodar localmente (desenvolvimento)
 
 Requisitos: Node 22.18+, pnpm 10, PostgreSQL 16.
 

@@ -1,0 +1,76 @@
+// Popula um banco VAZIO com dados de demonstração (para ver o painel funcionando localmente).
+// Não roda se já houver clientes cadastrados. Nunca use em produção.
+import { fileURLToPath } from 'node:url';
+import { pool, q } from '../db.ts';
+import { cifra, hashSenha } from '../crypto.ts';
+import { gerarFaturas, marcarVencidas } from '../jobs/faturas.ts';
+
+export const DEMO = { email: 'demo@vlcommand.local', senha: 'demo-vl-command', segredo2fa: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP' };
+
+const CLIENTES = [
+  // nome, sistema, url, mensal (R$), projeto (R$), início, ciclo
+  ['Padaria Sol', 'Site + pedidos online', 'https://example.com', 450, 8000, '2025-01-10', 'mensal'],
+  ['Clínica Vida', 'Agendamento de consultas', 'https://example.org', 1200, 25000, '2025-03-05', 'mensal'],
+  ['Auto Peças Rocha', 'Catálogo e estoque', 'https://example.net', 800, 15000, '2025-06-20', 'mensal'],
+  ['Escola Aprender', 'Portal do aluno', 'https://www.iana.org', 2400, 30000, '2025-09-01', 'trimestral'],
+  ['Imobiliária Lar', 'Site de imóveis', 'http://127.0.0.1:59999/fora-do-ar', 600, 12000, '2026-02-15', 'mensal'],
+  ['Studio Fit', 'App de treinos', 'https://example.com/studio', 500, 9000, '2025-04-01', 'mensal'],
+] as const;
+
+export async function popularDemo() {
+  if ((await q('select 1 from cliente limit 1')).length) return false;
+  const [{ hoje }] = await q("select current_date::text as hoje");
+
+  await q(`insert into admin (email, senha_hash, totp_secret) values ($1, $2, $3) on conflict (email) do nothing`,
+    [DEMO.email, await hashSenha(DEMO.senha), cifra(DEMO.segredo2fa)]);
+
+  for (const [nome, sistema, url, mensal, projeto, inicio, ciclo] of CLIENTES) {
+    const [c] = await q(`insert into cliente (nome, documento, email, whatsapp) values ($1, '00000000000191', $2, '+5511999990000') returning id`,
+      [nome, `contato@${nome.toLowerCase().replace(/[^a-z]/g, '')}.com.br`]);
+    const [s] = await q(`insert into sistema (cliente_id, nome, url, hospedagem, dominio, dominio_expira_em, credenciais_ref)
+      values ($1, $2, $3, 'VPS Hostinger', $4, current_date + 20 + (random() * 300)::int, 'Bitwarden > Clientes > ' || $5) returning id`,
+      [c.id, sistema, url, new URL(url).hostname, nome]);
+    const [a] = await q(`insert into assinatura (cliente_id, sistema_id, valor_mensal_cent, valor_projeto_cent, inicio_em, ciclo)
+      values ($1, $2, $3, $4, $5, $6) returning id`, [c.id, s.id, mensal * 100, projeto * 100, inicio, ciclo]);
+    await q(`insert into fatura (cliente_id, assinatura_id, tipo, valor_cent, competencia, vencimento, status, pago_em)
+      values ($1, $2, 'projeto', $3, date_trunc('month', $4::date), $4, 'paga', $4::date + 3)`, [c.id, a.id, projeto * 100, inicio]);
+  }
+
+  // Faturas recorrentes mês a mês desde jan/2025 até o mês atual.
+  for (const [m] of (await q(`select to_char(d, 'YYYY-MM-DD') from generate_series('2025-01-01'::date, date_trunc('month', current_date), interval '1 month') d`)).map(Object.values)) {
+    await gerarFaturas(m as string);
+  }
+  // Studio Fit cancelou em agosto/2026 (aparece no churn).
+  await q(`update assinatura set status = 'cancelada', cancelado_em = '2026-08-15' from cliente c where c.id = assinatura.cliente_id and c.nome = 'Studio Fit'`);
+  await q(`update fatura set status = 'cancelada' from cliente c where c.id = fatura.cliente_id and c.nome = 'Studio Fit' and competencia > '2026-08-01'`);
+  // Quase tudo pago alguns dias após o vencimento; Auto Peças Rocha com 2 meses em atraso.
+  await q(`update fatura f set status = 'paga', pago_em = f.vencimento + (abs(hashtext(f.id::text)) % 5)
+    from cliente c where c.id = f.cliente_id and f.status = 'aberta' and f.vencimento < $1::date - 5
+      and not (c.nome = 'Auto Peças Rocha' and f.vencimento > $1::date - 70)`, [hoje]);
+  await marcarVencidas();
+  await q(`delete from notificacao`); // as notificações de "vencida" do histórico não interessam; criamos algumas abaixo
+
+  await q(`insert into meta_receita (mes, valor_cent)
+    select d, 550000 from generate_series(date_trunc('year', current_date), date_trunc('year', current_date) + interval '11 months', interval '1 month') d`);
+
+  // Histórico de 24 h de uptime (um check a cada 10 min) para os gráficos já aparecerem.
+  await q(`insert into check_saude (sistema_id, origem, ok, http_status, latencia_ms, erro, checado_em)
+    select s.id, 'principal', s.url not like 'http://127.0.0.1%', case when s.url like 'http://127.0.0.1%' then null else 200 end,
+      case when s.url like 'http://127.0.0.1%' then null else 150 + (random() * 400)::int end,
+      case when s.url like 'http://127.0.0.1%' then 'ECONNREFUSED' end, now() - (n * interval '10 minutes')
+    from sistema s cross join generate_series(1, 144) n`);
+  await q(`insert into incidente (sistema_id, tipo, inicio_em, fim_em, descricao)
+    select id, 'queda', now() - interval '6 days 3 hours', now() - interval '6 days 2 hours 35 minutes', 'fora do ar (HTTP 502)'
+    from sistema where nome = 'Agendamento de consultas'`);
+  await q(`insert into notificacao (tipo, severidade, titulo, link, criado_em) values
+    ('pagamento', 'info', 'Pagamento recebido: Clínica Vida — R$ 1.200,00', '/faturas', now() - interval '2 days'),
+    ('fatura_vencida', 'aviso', 'Fatura vencida: Auto Peças Rocha — R$ 800,00', '/faturas?status=vencida', now() - interval '1 day')`);
+  return true;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log((await popularDemo())
+    ? `Dados de demonstração criados.\n  Login: ${DEMO.email}\n  Senha: ${DEMO.senha}\n  2FA (cadastre no app autenticador): ${DEMO.segredo2fa}`
+    : 'Banco já tem clientes; demonstração não aplicada.');
+  await pool.end();
+}

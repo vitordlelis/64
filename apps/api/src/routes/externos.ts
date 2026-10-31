@@ -16,7 +16,7 @@ export function externos(app: FastifyInstance) {
         where f.gateway_id = $1 and f.status <> 'paga' and c.id = f.cliente_id returning f.id, f.valor_cent, c.nome`, [payment.id]);
       if (f) {
         await registrar({ autor_tipo: 'webhook', autor_id: 'asaas', acao: 'fatura_paga', entidade: 'fatura', entidade_id: f.id, contexto: { event } });
-        await notificar('pagamento', 'info', `Pagamento recebido: ${f.nome} — R$ ${(f.valor_cent / 100).toFixed(2)}`, '/faturas');
+        await notificar('pagamento', 'info', `Pagamento recebido: ${f.nome} — ${(f.valor_cent / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, '/faturas');
       }
     }
     return { ok: true }; // 200 sempre para o Asaas não pausar a fila de webhooks

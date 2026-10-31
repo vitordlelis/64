@@ -17,7 +17,9 @@ export function Financeiro() {
     ano_anterior: m.ano_anterior / 100, mrr: m.mrr / 100, churn: +(m.churn * 100).toFixed(2),
   }));
   const total = f?.mensal.reduce((s: number, m: Linha) => s + m.projeto + m.recorrente, 0) ?? 0;
-  const totalAnterior = f?.mensal.reduce((s: number, m: Linha) => s + m.ano_anterior, 0) ?? 0;
+  // compara o mesmo período: no ano corrente, só até o mês atual
+  const ateMes = ano === anoAtual ? new Date().getMonth() : 11;
+  const totalAnterior = f?.mensal.reduce((s: number, m: Linha, i: number) => (i <= ateMes ? s + m.ano_anterior : s), 0) ?? 0;
 
   return (
     <>
@@ -30,7 +32,7 @@ export function Financeiro() {
         <>
           <div className="kpis">
             <Kpi titulo="MRR" valor={brl(f.mrr)} sub={`ARR ${brl(f.arr)}`} />
-            <Kpi titulo={`Receita ${ano}`} valor={brl(total)} sub={totalAnterior ? `${pct(total / totalAnterior - 1)} vs ${ano - 1}` : `sem receita em ${ano - 1}`} />
+            <Kpi titulo={`Receita ${ano}`} valor={brl(total)} sub={totalAnterior ? `${pct(total / totalAnterior - 1)} vs mesmo período de ${ano - 1}` : `sem receita em ${ano - 1}`} />
             <Kpi titulo="Ticket médio" valor={brl(f.ticket_medio)} sub={`${f.clientes_ativos} cliente(s) com mensalidade`} />
             <Kpi titulo="Permanência média" valor={f.permanencia_meses == null ? '—' : `${f.permanencia_meses} meses`} />
             <Kpi titulo="Inadimplência (12m)" valor={pct(f.inadimplencia.taxa)} sub={`${brl(f.inadimplencia.valor)} em atraso`} />

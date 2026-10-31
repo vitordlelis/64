@@ -12,8 +12,9 @@ export async function checar(url: string): Promise<Check> {
     const ok = r.status < 400;
     return { ok, http_status: r.status, latencia_ms: Math.round(performance.now() - t0), erro: ok ? null : `HTTP ${r.status}` };
   } catch (e) {
-    const err = e as Error & { cause?: { code?: string } };
-    return { ok: false, http_status: null, latencia_ms: null, erro: err.cause?.code ?? err.name ?? String(e) };
+    const err = e as Error & { cause?: { code?: string; message?: string } };
+    const erro = err.name === 'TimeoutError' ? 'timeout (10 s)' : err.cause?.code ?? err.cause?.message ?? err.message;
+    return { ok: false, http_status: null, latencia_ms: null, erro };
   }
 }
 
