@@ -1,14 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { q } from '../db.ts';
-import { prepararLote, renderizar, type Destinatario } from '../mensagens.ts';
+import { prepararLote, renderizar, DEST_MANUAL, type Destinatario } from '../mensagens.ts';
 import { brl } from '../util.ts';
-
-// Cliente + fatura em aberto mais recente (para preencher {valor}, {data_vencimento} etc.).
-const DEST_MANUAL = `select c.id as cliente_id, c.nome as nome_cliente, c.email, c.whatsapp, c.optout_email, c.optout_whatsapp,
-    f.valor_cent, f.vencimento::text as data, f.link_pagamento,
-    (select s.nome from sistema s where s.cliente_id = c.id order by s.criado_em limit 1) as nome_sistema
-  from cliente c left join lateral (select * from fatura f where f.cliente_id = c.id and f.status in ('aberta','vencida') order by f.vencimento desc limit 1) f on true
-  where c.id = any($1::uuid[])`;
 
 export function mensagens(app: FastifyInstance) {
   app.post<{ Body: { modelo_id: string; cliente_id: string } }>('/api/mensagens/previa', {

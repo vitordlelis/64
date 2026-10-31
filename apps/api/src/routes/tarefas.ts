@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { q } from '../db.ts';
 import { confereTotp } from '../auth.ts';
 import { ACOES, acaoValida } from '../acoes.ts';
+import { atualizarEstado } from '../agentes/agentes.ts';
 
 const uuid = { type: 'object', properties: { id: { type: 'string', format: 'uuid' } } };
 
@@ -26,7 +27,11 @@ export function tarefas(app: FastifyInstance) {
     const [t] = await q("select * from tarefa where id = $1 and status = 'aguardando' and expira_em > now()", [req.params.id]);
     if (!t) return rep.code(409).send({ erro: 'tarefa não está aguardando aprovação (ou expirou)' });
     if (t.impacto === 'alto' && !(await confereTotp(req.adminId!, req.body?.codigo))) return rep.code(403).send({ erro: 'Ação de alto impacto: informe o código do autenticador' });
-    return (await q("update tarefa set status = 'aprovada', aprovada_por = $2, decidida_em = now() where id = $1 and status = 'aguardando' returning *", [t.id, req.adminId]))[0];
+    // recomendação sem ação: aprovar = "ciente/feito", não há nada para o Executor
+    const [r] = await q(`update tarefa set status = case when acao_tipo is null then 'concluida' else 'aprovada' end, aprovada_por = $2, decidida_em = now()
+      where id = $1 and status = 'aguardando' returning *`, [t.id, req.adminId]);
+    if (r.agente_id) await atualizarEstado(r.agente_id);
+    return r;
   });
 
   app.post<{ Params: { id: string }; Body: { motivo?: string } }>('/api/tarefas/:id/rejeitar', {
@@ -36,6 +41,7 @@ export function tarefas(app: FastifyInstance) {
       where id = $1 and status = 'aguardando' returning *`, [req.params.id, req.body?.motivo ?? null]);
     if (!t) return rep.code(409).send({ erro: 'tarefa não está aguardando aprovação' });
     await q("update envio_mensagem set status = 'cancelada', atualizado_em = now() where tarefa_id = $1 and status = 'pendente'", [t.id]);
+    if (t.agente_id) await atualizarEstado(t.agente_id);
     return t;
   });
 

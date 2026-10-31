@@ -61,6 +61,7 @@ export function Sistema() {
           )}
         </Secao>
         <ChaveIngestao id={s.id} />
+        <PenTest s={s} />
         <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema()} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
       </div>
     </>
@@ -81,6 +82,37 @@ function ChaveIngestao({ id }: { id: string }) {
       <button onClick={() => (!chave || confirm('Gerar outra chave? A atual deixa de funcionar.')) && gerar.mutate(undefined)}>Gerar chave de ingestão</button>
       {chave && <p role="status"><strong>Copie agora, ela não será mostrada de novo:</strong> <code>{chave}</code></p>}
       <pre>{exemplo}</pre>
+    </Secao>
+  );
+}
+
+function PenTest({ s }: { s: Linha }) {
+  const [reg, setReg] = useState<Linha | null>(null);
+  const [codigo, setCodigo] = useState('');
+  const relatorios = useDados<Linha[]>(`/sistemas/${s.id}/pentests`, { refetchInterval: 10_000 });
+  const autorizar = useAcao(() => api(`/sistemas/${s.id}`, 'PATCH', { pentest_autorizado: !s.pentest_autorizado }));
+  const gerar = useAcao(async () => setReg(await api<Linha>(`/sistemas/${s.id}/verificacao`, 'POST')));
+  const verificar = useAcao(() => api(`/sistemas/${s.id}/verificar`, 'POST'));
+  const rodar = useAcao(() => api(`/sistemas/${s.id}/pentest`, 'POST', { codigo }));
+  return (
+    <Secao titulo="Pen test (sob demanda)">
+      <p className="ajuda">Checagens passivas e autorizadas (cabeçalhos, HTTPS, arquivos expostos, cookies). Só roda em sistema da VL Systems com domínio verificado.</p>
+      <ol className="passos">
+        <li>{s.pentest_autorizado ? '✅ Autorizado' : 'Não autorizado'} — <button className="link" onClick={() => autorizar.mutate(undefined)}>{s.pentest_autorizado ? 'revogar' : 'autorizar'}</button></li>
+        <li>{s.dominio_verificado_em ? `✅ Domínio verificado em ${data(s.dominio_verificado_em)}` : <>
+          Domínio não verificado — <button className="link" onClick={() => gerar.mutate(undefined)}>mostrar registro DNS</button>
+          {reg && <> · crie um registro <strong>TXT</strong> em <code>{reg.host}</code> com o valor <code>{reg.registro}</code> e <button className="link" onClick={() => verificar.mutate(undefined)}>verificar</button></>}
+        </>}</li>
+        <li><label>Código do autenticador <input value={codigo} onChange={(e) => setCodigo(e.target.value)} inputMode="numeric" maxLength={6} /></label>
+          <button disabled={!s.pentest_autorizado || !s.dominio_verificado_em || rodar.isPending} onClick={() => rodar.mutate(undefined)}>Executar pen test</button></li>
+      </ol>
+      {relatorios.data?.map((r) => (
+        <details key={r.id}><summary>{data(r.criado_em)} — {r.resumo.split('\n')[0]}</summary>
+          <p className="previa">{r.resumo}</p>
+          <table><thead><tr><th>Achado</th><th>Severidade</th><th>Evidência</th><th>Como corrigir</th></tr></thead>
+            <tbody>{r.achados.map((a: Linha, i: number) => <tr key={i}><td>{a.titulo}</td><td><span className={`pill sev-${a.severidade}`}>{a.severidade}</span></td><td><small>{a.evidencia}</small></td><td><small>{a.correcao}</small></td></tr>)}</tbody></table>
+        </details>
+      ))}
     </Secao>
   );
 }

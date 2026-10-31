@@ -44,6 +44,13 @@ Para apagar os dados de demonstração e recomeçar do zero:
 docker compose -f docker-compose.local.yml down -v
 ```
 
+## Ligar os agentes de IA (opcional)
+Crie um arquivo `.env` na pasta `vl-command` com a linha abaixo (chave em https://console.anthropic.com) e religue pelo atalho:
+```
+ANTHROPIC_API_KEY=sua-chave
+```
+Cada agente tem teto de US$ 1 por dia (ajustável). Sem a chave, a tela Agentes mostra um histórico de exemplo.
+
 ## O que esperar
 - O sistema "Site de imóveis" aparece **fora do ar de propósito**, para você ver alertas e incidentes.
 - Os outros sites de demonstração ficam verdes após ~1 minuto (o monitor checa a cada 60 s).

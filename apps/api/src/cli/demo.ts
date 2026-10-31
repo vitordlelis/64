@@ -96,10 +96,32 @@ export async function popularDemoFase2() {
   return true;
 }
 
+// Fase 3: histórico de exemplo dos agentes (para a tela não ficar vazia sem a chave da API).
+export async function popularDemoFase3() {
+  const [demo] = await q('select 1 from admin where email = $1', [DEMO.email]);
+  if (!demo || (await q('select 1 from atividade_agente limit 1')).length) return false;
+  const ag = async (f: string) => (await q('select id from agente where funcao = $1', [f]))[0].id as string;
+  const [helena, lara, rafael, marcos] = [await ag('diretor'), await ag('designer'), await ag('engenheiro'), await ag('marketing')];
+  const sis = async (nome: string) => (await q('select id from sistema where nome = $1', [nome]))[0]?.id;
+  await q(`insert into atividade_agente (agente_id, tipo, resumo, tokens_entrada, tokens_saida, custo_usd, criado_em) values
+    ($1, 'ciclo', 'Resumo do dia: MRR de R$ 5.450, inadimplência de 2% (Auto Peças Rocha com 2 faturas). Imobiliária Lar fora do ar desde ontem — pedi ao Rafael para investigar. Um bloqueio de IP aguarda sua aprovação.', 18000, 1400, 0.1, now() - interval '3 hours'),
+    ($2, 'ciclo', 'Analisei 2 sites e registrei 1 recomendação de acessibilidade para o Site + pedidos online.', 25000, 1800, 0.136, now() - interval '2 days'),
+    ($3, 'comando', 'Investiguei a queda do Site de imóveis: conexão recusada na porta do servidor. Registrei recomendação com os passos.', 12000, 1500, 0.078, now() - interval '2 hours'),
+    ($4, 'ciclo', 'Revisei cobranças: só a Auto Peças Rocha está em atraso; o aviso já está na fila de aprovação.', 9000, 700, 0.05, now() - interval '1 day')`,
+    [helena, lara, rafael, marcos]);
+  await q(`insert into tarefa (agente_id, sistema_id, origem, titulo, descricao) values
+    ($1, $3, 'autonoma', 'Melhorar contraste e tamanho dos botões do pedido online', 'O botão "Finalizar pedido" tem contraste 2,9:1 (o mínimo é 4,5:1) e altura de 32px no celular. Sugestão: fundo #b45309 com texto branco e altura mínima de 44px.'),
+    ($2, $4, 'diretor', 'Site de imóveis fora do ar: reiniciar serviço e ativar reinício automático', 'O servidor recusa conexões (ECONNREFUSED) desde ontem. Passos: 1) acessar o VPS; 2) systemctl status do serviço web; 3) reiniciar; 4) configurar restart=always no systemd para evitar novas quedas.')`,
+    [lara, rafael, await sis('Site + pedidos online'), await sis('Site de imóveis')]);
+  await q(`update agente set estado = 'aguardando' where id in ($1, $2)`, [lara, rafael]);
+  return true;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   console.log((await popularDemo())
     ? `Dados de demonstração criados.\n  Login: ${DEMO.email}\n  Senha: ${DEMO.senha}\n  2FA (cadastre no app autenticador): ${DEMO.segredo2fa}`
     : 'Banco já tem clientes; demonstração da Fase 1 não aplicada.');
   if (await popularDemoFase2()) console.log('Dados de demonstração da Fase 2 criados.');
+  if (await popularDemoFase3()) console.log('Dados de demonstração da Fase 3 criados.');
   await pool.end();
 }

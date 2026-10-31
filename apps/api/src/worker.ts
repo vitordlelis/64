@@ -5,6 +5,7 @@ import { gerarFaturas, marcarVencidas, sincronizarAsaas } from './jobs/faturas.t
 import { rodarSoc } from './jobs/soc.ts';
 import { rodarGatilhos } from './mensagens.ts';
 import { expirarTarefas } from './routes/tarefas.ts';
+import { rodarAgentes } from './agentes/agentes.ts';
 
 const MIN = 60_000;
 const JOBS: [string, number, () => Promise<unknown>][] = [
@@ -15,6 +16,7 @@ const JOBS: [string, number, () => Promise<unknown>][] = [
   ['soc', MIN, rodarSoc],
   ['mensagens', 15 * MIN, rodarGatilhos],
   ['expirar_tarefas', 10 * MIN, expirarTarefas],
+  ['agentes', MIN / 2, rodarAgentes],
   ['limpeza', 24 * 60 * MIN, () => q(`delete from check_saude where checado_em < now() - interval '90 days';
     delete from evento_bruto where ocorrido_em < now() - interval '30 days'; delete from sessao where expira_em < now();`)],
 ];

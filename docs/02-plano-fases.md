@@ -28,7 +28,7 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 
 **Pronto quando:** lembretes de vencimento saem automaticamente após aprovação e uma tentativa de força bruta simulada num sistema próprio gera alerta e proposta de bloqueio.
 
-## Fase 3 — Agentes de IA (≈5 semanas)
+## Fase 3 — Agentes de IA ✅ implementada
 - Infra de agentes: worker por papel, ferramentas de leitura, criação de tarefa, teto de custo diário, painel de aprovação.
 - Ordem de entrada: **SOC N1** (tria eventos já existentes) → **Diretor** (resumo diário) → **Engenheiro** (propostas de correção via PR) → **Marketing** → **Designer**.
 - **Pen tester sob demanda** com verificação de domínio por DNS TXT e relatório.
@@ -67,3 +67,10 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 - **SOC N1** (`/seguranca`): cada sistema recebe uma chave de ingestão e envia `login_falho`, `http_4xx`, `http_5xx`, `req`. Regras a cada minuto (janela de 5 min): força bruta (≥10), varredura (≥20 caminhos 404), pico por IP (≥300 req), anomalia de 5xx (≥20). Evento + alerta + proposta de bloqueio de 24 h no Cloudflare.
 - **Modo demonstração** (`MODO_DEMONSTRACAO=1`, só no `docker-compose.local.yml`): mensagens e bloqueios são simulados.
 - Não implementado: regra de pico global comparando com a média histórica (só pico por IP).
+
+## Notas da implementação da Fase 3
+- Agentes em `apps/api/src/agentes/`: loop manual de ferramentas com o SDK oficial da Anthropic; cada papel recebe só as suas ferramentas, e ferramentas fora do papel são recusadas mesmo se pedidas. Ferramentas de escrita só criam **propostas** (tarefas aguardando) ou registros internos.
+- Modelo padrão de todos: `claude-opus-5-5`, trocável por agente na tela **Agentes** (Sonnet 5.5 / Haiku 5.5). Fallback no servidor quando o modelo recusa. Custo por execução em US$ registrado em `atividade_agente`, com teto diário por agente (padrão US$ 1).
+- Agenda: Helena diário (horário comercial), Rafael diário, Marcos semanal, Lara mensal, Vigia a cada alerta médio+, Sentinela só sob demanda. Pedidos por texto entram na fila e são respondidos em segundos.
+- **Pen test**: autorização + domínio verificado por DNS TXT + código do autenticador. As checagens (HTTPS, cabeçalhos, cookies, arquivos expostos) rodam no Executor, só com GET; a Sentinela escreve a análise.
+- Diferença em relação ao escopo: Engenheiro e Designer registram **recomendações detalhadas** em vez de abrir PRs, pois os repositórios dos clientes ainda não estão integrados. Abrir PR no GitHub é o próximo passo natural (nova ação no catálogo do Executor).

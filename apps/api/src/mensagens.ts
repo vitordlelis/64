@@ -27,7 +27,7 @@ type Modelo = { id: string; nome: string; canal: 'email' | 'whatsapp'; corpo: st
 const fmtData = (d?: string | null) => (d ? d.slice(0, 10).split('-').reverse().join('/') : undefined);
 
 // Cria os envios (pendentes) e UMA tarefa com o lote. Lote vazio (todos já enviados/opt-out) não cria nada.
-export async function prepararLote(modelo: Modelo, destinatarios: Destinatario[], origem: 'evento' | 'admin_texto', adminId?: string) {
+export async function prepararLote(modelo: Modelo, destinatarios: Destinatario[], origem: 'evento' | 'admin_texto' | 'autonoma', adminId?: string) {
   const c = await pool.connect();
   try {
     await c.query('begin');
@@ -60,6 +60,13 @@ export async function prepararLote(modelo: Modelo, destinatarios: Destinatario[]
     c.release();
   }
 }
+
+// Cliente + fatura em aberto mais recente (para preencher {valor}, {data_vencimento} etc.).
+export const DEST_MANUAL = `select c.id as cliente_id, c.nome as nome_cliente, c.email, c.whatsapp, c.optout_email, c.optout_whatsapp,
+    f.valor_cent, f.vencimento::text as data, f.link_pagamento,
+    (select s.nome from sistema s where s.cliente_id = c.id order by s.criado_em limit 1) as nome_sistema
+  from cliente c left join lateral (select * from fatura f where f.cliente_id = c.id and f.status in ('aberta','vencida') order by f.vencimento desc limit 1) f on true
+  where c.id = any($1::uuid[])`;
 
 const SELECT_CLIENTE = `c.id as cliente_id, c.nome as nome_cliente, c.email, c.whatsapp, c.optout_email, c.optout_whatsapp`;
 const POR_FATURA = (where: string) => `select ${SELECT_CLIENTE}, f.id as fatura_id, f.valor_cent, f.vencimento::text as data, s.nome as nome_sistema, f.link_pagamento

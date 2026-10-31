@@ -72,3 +72,11 @@ td.msg { max-width: 480px; white-space: pre-wrap; }
 fieldset.clientes { border: 1px solid var(--borda); border-radius: 6px; margin: .75rem 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .25rem; }
 label.check { flex-direction: row; align-items: center; gap: .4rem; color: var(--texto); }
 .form label:has(textarea) { grid-column: 1 / -1; }
+.agente.trabalhando { border-left: 4px solid var(--verde); }
+.agente.aguardando { border-left: 4px solid var(--amarelo); }
+.pill.est-trabalhando { background: #dcfce7; } .pill.est-aguardando { background: #fef3c7; }
+.linha { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin: .5rem 0; }
+.linha label { flex-direction: row; align-items: center; gap: .4rem; }
+form.comando { display: flex; gap: .5rem; } form.comando input { flex: 1; }
+.ultima { white-space: pre-wrap; max-height: 8em; overflow: auto; }
+ol.passos li { margin: .4rem 0; }

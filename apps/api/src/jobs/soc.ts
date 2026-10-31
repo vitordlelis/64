@@ -55,13 +55,14 @@ export async function rodarSoc() {
   }
 }
 
-export async function proporBloqueio(sistemaId: string, ip: string, motivo: string) {
+export async function proporBloqueio(sistemaId: string, ip: string, motivo: string, horas = 24) {
   const [ja] = await q(`select 1 from bloqueio_ip where sistema_id = $1 and ip = $2::inet and removido_em is null
     union all select 1 from tarefa where acao_tipo = 'bloquear_ip' and status in ('aguardando','aprovada','executando')
       and acao_payload->>'sistema_id' = $1::text and acao_payload->>'ip' = host($2::inet)`, [sistemaId, ip]);
-  if (ja) return;
+  if (ja) return false;
   await q(`insert into tarefa (agente_id, sistema_id, origem, titulo, descricao, acao_tipo, acao_payload, impacto)
     values ((select id from agente where funcao = 'soc'), $1, 'evento', $2, $3, 'bloquear_ip', $4, 'alto')`,
-    [sistemaId, `Bloquear IP ${ip} por 24 h`, motivo, { sistema_id: sistemaId, ip, horas: 24 }]);
+    [sistemaId, `Bloquear IP ${ip} por ${horas} h`, motivo, { sistema_id: sistemaId, ip, horas }]);
   await notificar('tarefa_aguardando', 'aviso', `Aprovação pendente: bloquear IP ${ip}`, '/aprovacoes');
+  return true;
 }

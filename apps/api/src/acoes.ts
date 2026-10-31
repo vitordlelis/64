@@ -2,6 +2,7 @@
 import { isIP } from 'node:net';
 import { q } from './db.ts';
 import { parametrosEmOrdem, type Vars } from './mensagens.ts';
+import { pentestPassivo } from './pentest.ts';
 
 const demo = () => process.env.MODO_DEMONSTRACAO === '1';
 type Payload = Record<string, unknown>;
@@ -20,6 +21,10 @@ export const ACOES = {
   desbloquear_ip: {
     impacto: 'baixo',
     validar: (p: Payload) => typeof p.bloqueio_id === 'string',
+  },
+  pentest_passivo: {
+    impacto: 'alto',
+    validar: (p: Payload) => typeof p.sistema_id === 'string',
   },
 } as const;
 export type AcaoTipo = keyof typeof ACOES;
@@ -107,6 +112,8 @@ export async function executar(t: Tarefa): Promise<object> {
       on conflict (sistema_id, ip) where removido_em is null do nothing returning id`, [s.id, p.ip, t.id, regra, p.horas]);
     return { bloqueio_id: b?.id ?? null, ja_bloqueado: !b, waf_regra_id: regra, demonstracao: demo() };
   }
+
+  if (t.acao_tipo === 'pentest_passivo') return pentestPassivo(t.id, p.sistema_id as string);
 
   // desbloquear_ip
   return removerBloqueio(p.bloqueio_id as string);

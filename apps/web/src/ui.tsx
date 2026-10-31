@@ -62,7 +62,7 @@ export const Carregando = ({ q }: { q: { isLoading: boolean; error: Error | null
 
 const NAV: [string, string][] = [
   ['/', 'Visão geral'], ['/financeiro', 'Financeiro'], ['/faturas', 'Faturas'], ['/clientes', 'Clientes'],
-  ['/sistemas', 'Sistemas'], ['/saude', 'Saúde'], ['/aprovacoes', 'Aprovações'], ['/mensagens', 'Mensagens'], ['/seguranca', 'Segurança'], ['/notificacoes', 'Notificações'], ['/auditoria', 'Auditoria'], ['/configuracoes', 'Configurações'],
+  ['/sistemas', 'Sistemas'], ['/saude', 'Saúde'], ['/aprovacoes', 'Aprovações'], ['/agentes', 'Agentes'], ['/mensagens', 'Mensagens'], ['/seguranca', 'Segurança'], ['/notificacoes', 'Notificações'], ['/auditoria', 'Auditoria'], ['/configuracoes', 'Configurações'],
 ];
 
 export function Layout() {

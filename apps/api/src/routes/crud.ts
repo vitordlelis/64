@@ -20,7 +20,7 @@ const ENTIDADES = {
     campos: {
       cliente_id: uuid, nome: { type: 'string', minLength: 1, maxLength: 200 },
       url: { type: 'string', pattern: '^https?://', maxLength: 500 },
-      health_url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 }, waf_zona_id: txt,
+      health_url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 }, waf_zona_id: txt, pentest_autorizado: { type: 'boolean' },
       hospedagem: txt, dominio: txt, dominio_expira_em: data, ssl_expira_em: data,
       credenciais_ref: txt, notas: txt, latencia_limite_ms: { type: 'integer', minimum: 100, maximum: 30000 },
     },

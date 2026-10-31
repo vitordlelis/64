@@ -1,5 +1,7 @@
 # 5. Especificação dos agentes
 
+> Implementado na Fase 3. Todos usam `claude-opus-5-5` por padrão (trocável por agente na tela Agentes). Engenheiro e Designer registram recomendações em vez de abrir PRs até os repositórios dos clientes serem integrados.
+
 ## Regras comuns a todos
 
 1. **Sem credenciais de escrita.** O agente só tem ferramentas de *leitura* e a ferramenta `propor_acao`.
@@ -33,12 +35,12 @@ sequenceDiagram
 
 | Nome | Função | Modelo | Quando roda | Ferramentas de leitura | Ações que pode propor | Limites |
 |---|---|---|---|---|---|---|
-| **Helena** | Diretor (orquestrador) | `claude-sonnet-5-5` | Ciclo diário 08:00 + sob comando | Métricas financeiras, saúde, eventos de segurança, tarefas de todos os agentes | `delegar_tarefa` (cria tarefa para outro agente — não precisa aprovação, pois não tem efeito externo), `enviar_resumo_admin` | Não executa nada no mundo real além de resumos para o próprio admin. |
-| **Marcos** | Marketing | `claude-sonnet-5-5` | Semanal + sob comando | Analytics dos sites (se integrado), histórico de mensagens, financeiro por cliente | `enviar_mensagens` (lote para clientes, via modelos aprovados), `criar_modelo_mensagem` | Respeita opt-out e horário comercial; lote sempre mostra destinatários antes da aprovação. |
-| **Lara** | Designer | `claude-sonnet-5-5` | Mensal por sistema + sob comando | Captura de tela e HTML público dos sistemas, notas de UX | `abrir_pr` (mudanças de UI/CSS) | Só propõe; PR aberto em branch, merge sempre humano no GitHub. |
+| **Helena** | Diretor (orquestrador) | `claude-opus-5-5` | Ciclo diário 08:00 + sob comando | Métricas financeiras, saúde, eventos de segurança, tarefas de todos os agentes | `delegar_tarefa` (cria tarefa para outro agente — não precisa aprovação, pois não tem efeito externo), `enviar_resumo_admin` | Não executa nada no mundo real além de resumos para o próprio admin. |
+| **Marcos** | Marketing | `claude-opus-5-5` | Semanal + sob comando | Analytics dos sites (se integrado), histórico de mensagens, financeiro por cliente | `enviar_mensagens` (lote para clientes, via modelos aprovados), `criar_modelo_mensagem` | Respeita opt-out e horário comercial; lote sempre mostra destinatários antes da aprovação. |
+| **Lara** | Designer | `claude-opus-5-5` | Mensal por sistema + sob comando | Captura de tela e HTML público dos sistemas, notas de UX | `abrir_pr` (mudanças de UI/CSS) | Só propõe; PR aberto em branch, merge sempre humano no GitHub. |
 | **Rafael** | Engenheiro de software | `claude-opus-5-5` | Diário por sistema + ao surgir incidente + sob comando | Repositórios (somente leitura), incidentes, erros (Sentry), latência | `abrir_pr` (correção de bug/performance, com diff e testes) | Nunca faz merge ou deploy; diff completo exibido na aprovação. |
-| **Vigia** | SOC Nível 1 | `claude-haiku-5-5` | A cada novo `evento_seguranca` média+ | Eventos brutos e de segurança, histórico do IP, status do sistema | `bloquear_ip` (WAF, expira em 24 h por padrão), `escalar_admin` | Só defensivo; só sistemas da VL Systems; nunca bloqueia faixas amplas (/16 ou maior). |
-| **Sentinela** | Pen Tester (sob demanda) | `claude-sonnet-5-5` | **Somente quando o admin aciona** | Resultado das checagens abaixo | `gerar_relatorio_pentest` | Só em sistema com `pentest_autorizado` **e** domínio verificado por DNS TXT; checagens não destrutivas; limite de taxa; janela de execução combinada. |
+| **Vigia** | SOC Nível 1 | `claude-opus-5-5` | A cada novo `evento_seguranca` média+ | Eventos brutos e de segurança, histórico do IP, status do sistema | `bloquear_ip` (WAF, expira em 24 h por padrão), `escalar_admin` | Só defensivo; só sistemas da VL Systems; nunca bloqueia faixas amplas (/16 ou maior). |
+| **Sentinela** | Pen Tester (sob demanda) | `claude-opus-5-5` | **Somente quando o admin aciona** | Resultado das checagens abaixo | `gerar_relatorio_pentest` | Só em sistema com `pentest_autorizado` **e** domínio verificado por DNS TXT; checagens não destrutivas; limite de taxa; janela de execução combinada. |
 
 ### Checagens do Pen Tester (não destrutivas, ativos próprios)
 - Cabeçalhos de segurança (CSP, HSTS, X-Frame-Options etc.) e configuração TLS.
