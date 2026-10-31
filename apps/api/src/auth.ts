@@ -49,5 +49,8 @@ export function auth(app: FastifyInstance) {
     return { ok: true };
   });
 
-  app.get('/api/auth/me', async (req) => (await q('select id, email from admin where id = $1', [req.adminId]))[0]);
+  app.get('/api/auth/me', async (req) => ({
+    ...(await q('select id, email from admin where id = $1', [req.adminId]))[0],
+    pode_desligar: process.env.PERMITIR_DESLIGAR === '1',
+  }));
 }

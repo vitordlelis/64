@@ -70,6 +70,13 @@ export function Layout() {
   const me = useDados('/auth/me');
   const notif = useDados<Linha[]>('/notificacoes', { refetchInterval: 30_000 });
   const naoLidas = notif.data?.filter((n) => !n.lida_em).length ?? 0;
+  const [desligado, setDesligado] = useState(false);
+  if (desligado) return (
+    <main className="login"><div className="card" role="status">
+      <h1>VL Command desligado</h1>
+      <p>Para ligar de novo, dê dois cliques no atalho <strong>VL Command</strong> da área de trabalho.</p>
+    </div></main>
+  );
   if (!me.data) return null;
   return (
     <div className="app">
@@ -78,6 +85,13 @@ export function Layout() {
         {NAV.map(([to, t]) => (
           <NavLink key={to} to={to} end={to === '/'}>{t}{to === '/notificacoes' && naoLidas > 0 && <span className="badge" aria-label={`${naoLidas} não lidas`}>{naoLidas}</span>}</NavLink>
         ))}
+        {me.data.pode_desligar && (
+          <button className="desligar" onClick={async () => {
+            if (!confirm('Desligar o VL Command agora?')) return;
+            await api('/sistema/desligar', 'POST');
+            setDesligado(true);
+          }}>⏻ Desligar sistema</button>
+        )}
         <button className="link sair" onClick={async () => { await api('/auth/logout', 'POST'); nav('/login'); }}>Sair ({me.data.email})</button>
       </nav>
       <main><Outlet /></main>

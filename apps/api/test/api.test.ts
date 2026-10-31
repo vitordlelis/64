@@ -38,6 +38,8 @@ test('login exige senha e TOTP; rotas privadas exigem sessão', async () => {
   assert.match(sc, /SameSite=Strict/);
   cookie = sc.split(';')[0]!;
   assert.equal((await req('GET', '/api/auth/me')).body.email, 'adm@vl.com');
+  assert.equal((await req('GET', '/api/auth/me')).body.pode_desligar, false);
+  assert.equal((await req('POST', '/api/sistema/desligar')).status, 404); // fora do modo local o botão não existe
   const [falho] = await q("select * from log_auditoria where acao = 'login_falho'");
   assert.ok(falho);
 });

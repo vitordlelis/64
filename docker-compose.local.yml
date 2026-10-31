@@ -9,6 +9,7 @@ x-app: &app
     DATABASE_URL: postgres://vlc:vlc@postgres:5432/vlc
     APP_KEY: chave-local-somente-para-demonstracao-123
     NODE_ENV: development   # cookie sem "Secure", pois localhost é http
+    PERMITIR_DESLIGAR: "1"  # botão "Desligar sistema" no site
   depends_on:
     postgres: { condition: service_healthy }
 

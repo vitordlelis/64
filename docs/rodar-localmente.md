@@ -9,38 +9,39 @@ Nada vai para a internet e nenhum cliente real é cobrado ou avisado.
 3. **App autenticador no celular** (Google Authenticator, Microsoft Authenticator ou Authy).
    Adicione uma conta **digitando a chave**: `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` (nome: VL Command demo).
 
-## Primeira vez: baixar e subir
-Abra o Terminal (Mac) ou PowerShell (Windows) e rode:
+## Primeira vez: baixar
+Abra o PowerShell (Windows) ou Terminal (Mac) e rode:
 
 ```bash
 git clone https://github.com/vitordlelis/64.git vl-command
-cd vl-command
-docker compose -f docker-compose.local.yml up --build
 ```
 
-A primeira vez demora alguns minutos. Quando aparecer `Server listening at`, abra **http://localhost:3000**:
+## Ligar e desligar (Windows)
+- **Ligar:** abra a pasta `C:\Users\SEU_USUARIO\vl-command` e dê dois cliques em **`VL Command.bat`**.
+  Na primeira vez ele cria o atalho **VL Command** na área de trabalho; depois é só usar o atalho.
+  Ele abre o Docker Desktop se precisar, baixa as atualizações, liga o sistema e abre o navegador
+  (a primeira vez demora alguns minutos). Deixe a janela preta minimizada.
+- **Desligar:** botão **⏻ Desligar sistema** no menu do site.
 
-| Campo | Valor |
+| Login | |
 |---|---|
 | E-mail | `demo@vlcommand.local` |
 | Senha | `demo-vl-command` |
 | Código | o número de 6 dígitos do app autenticador |
 
-Para parar: `Ctrl + C` no terminal.
-
-## Ver as atualizações (a cada nova fase)
-Dentro da pasta `vl-command`:
+## Pelo terminal (Mac, ou se preferir)
 
 ```bash
+cd vl-command
 git pull
-docker compose -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build     # liga; abra http://localhost:3000
+docker compose -f docker-compose.local.yml stop           # desliga (ou Ctrl + C)
 ```
 
-Se uma atualização mudar a estrutura dos dados de demonstração, comece do zero (apaga só o banco local):
+Para apagar os dados de demonstração e recomeçar do zero:
 
 ```bash
 docker compose -f docker-compose.local.yml down -v
-docker compose -f docker-compose.local.yml up --build
 ```
 
 ## O que esperar
