@@ -1,4 +1,4 @@
--- Autoteste do schema: psql -v ON_ERROR_STOP=1 -f db/schema.sql -f db/tests/schema_test.sql
+-- Autoteste do schema (rode num banco já migrado): psql -v ON_ERROR_STOP=1 -f db/tests/schema_test.sql
 BEGIN;
 INSERT INTO admin (id, email, senha_hash, totp_secret) VALUES ('00000000-0000-0000-0000-000000000001','a@vl','x','y');
 INSERT INTO cliente (id, nome) VALUES ('00000000-0000-0000-0000-0000000000c1','Cliente A');

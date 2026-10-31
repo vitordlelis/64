@@ -1,9 +1,10 @@
 # 3. Modelo de dados
 
-Fonte da verdade: [`db/schema.sql`](../db/schema.sql) (PostgreSQL 16). Autoteste: [`db/tests/schema_test.sql`](../db/tests/schema_test.sql).
+Fonte da verdade: as migrações em [`db/migrations/`](../db/migrations/) (PostgreSQL 16), aplicadas em ordem por `apps/api/src/migrate.ts`. Autoteste: [`db/tests/schema_test.sql`](../db/tests/schema_test.sql).
 
 ```bash
-createdb vlc && psql -v ON_ERROR_STOP=1 -d vlc -f db/schema.sql -f db/tests/schema_test.sql
+DATABASE_URL=postgres://.../vlc pnpm --filter api migrate
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/schema_test.sql
 ```
 
 ## Diagrama entidade-relacionamento
@@ -47,6 +48,7 @@ erDiagram
 | ModeloMensagem | `modelo_mensagem` | Corpo com variáveis, template WhatsApp e status de aprovação na Meta, gatilho, recorrência, horário comercial. |
 | EnvioMensagem | `envio_mensagem` | Conteúdo final, status (enviada/entregue/lida/falhou) via webhook; único por modelo+cliente+fatura (não duplica lembrete). |
 | — | `notificacao` | Alertas para o admin. |
+| — | `sessao` | Sessões do admin (só o hash do token). Migração 002. |
 | LogAuditoria | `log_auditoria` | Autor (admin/agente/executor/sistema/webhook), ação, entidade, contexto. **Imutável por trigger.** |
 
 ## Regras de cálculo (visões e API)

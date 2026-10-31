@@ -2,14 +2,14 @@
 
 Cada fase termina com algo **em produção e usado de verdade**. Uma fase só começa quando a anterior está estável.
 
-## Fase 0 — Fundação técnica (≈1 semana)
-- Monorepo TypeScript (`apps/web`, `apps/api`, `apps/workers`, `apps/executor`, `packages/shared`).
-- Docker Compose (postgres, redis, api, web, workers, executor), CI com lint + testes + migrações.
-- `db/schema.sql` aplicado por migração; backup diário do Postgres testado com restore.
+## Fase 0 — Fundação técnica ✅ implementada
+- Monorepo TypeScript: `apps/api` (API, worker, sonda, CLI) e `apps/web`. Executor e agentes entram como novos entrypoints em `apps/api` nas fases 2/3.
+- Docker Compose (postgres, app, worker, caddy, backup); CI com typecheck, testes de integração contra Postgres, autoteste do schema, build do front e da imagem.
+- Migrações SQL em `db/migrations/`; backup diário com `pg_dump` (14 dias) — restore testado.
 
 **Pronto quando:** deploy automatizado no VPS a partir da branch principal.
 
-## Fase 1 — MVP de gestão (≈4 semanas)
+## Fase 1 — MVP de gestão ✅ implementada
 - Login do admin com senha + TOTP; sessão segura; `log_auditoria` em toda escrita.
 - Cadastro de **clientes, sistemas e assinaturas** (inclui base de conhecimento: domínio, hospedagem, vencimentos, referência de acessos).
 - **Faturas**: geração mensal automática a partir das assinaturas; integração Asaas (cobrança + webhook de pagamento).
@@ -51,3 +51,11 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 | Custo de IA "24/7" | Agentes rodam por evento e em ciclos agendados, não em loop contínuo; teto diário por agente; modelo menor para triagem. |
 | Falso positivo do SOC bloquear cliente legítimo | Bloqueio só com aprovação; bloqueio com expiração (24 h padrão). |
 | Sistemas dos clientes sem endpoint de health | Fallback para GET na URL principal + verificação de conteúdo. |
+
+## Notas da implementação da Fase 1
+- **Faturas recorrentes** são geradas pelo worker a cada hora para a competência atual (idempotente). Não há geração retroativa de meses passados.
+- **Fatura de projeto**: botão "faturar projeto" na assinatura (vencimento em 7 dias) ou fatura avulsa na tela Faturas.
+- **Asaas** é opcional: sem `ASAAS_API_KEY` as faturas existem só no painel. Com a chave, o worker cria cliente e cobrança (Pix/boleto/cartão) a cada 5 min; o webhook baixa a fatura paga. Cancelar ou marcar paga no painel reflete no Asaas.
+- **Uptime**: check a cada 60 s; amarelo = lento ou 1–2 falhas; vermelho/incidente = 3 falhas seguidas não desmentidas pela sonda externa. SSL lido do certificado a cada 6 h (alerta < 15 dias); domínio pela data cadastrada (alerta < 30 dias).
+- **Sonda externa**: `apps/api/src/sonda.ts`, rodando em outro provedor com `API_URL` e `SONDA_TOKEN`.
+- **Alertas** vão para Notificações e, com Resend configurado, por e-mail (aviso e crítico).

@@ -76,7 +76,7 @@ flowchart LR
 
 ## Segurança da própria plataforma
 
-- **Admin único**: senha com Argon2id + **TOTP obrigatório**; sessão em cookie `HttpOnly; Secure; SameSite=Strict`, expira em 12 h.
+- **Admin único**: senha com scrypt (nativo do Node, custo alto) + **TOTP obrigatório** (segredo cifrado com AES-256-GCM); sessão em cookie `HttpOnly; Secure; SameSite=Strict`, expira em 12 h.
 - **Step-up**: aprovar ações de alto impacto (disparo em massa, bloqueio de IP, pen test, abrir PR) exige o código TOTP de novo.
 - **Ingestão autenticada**: cada sistema tem uma chave de ingestão própria (hash no banco) para enviar eventos; webhooks externos validados por assinatura (Meta, Asaas).
 - **Segredos** em variáveis de ambiente do Executor apenas; workers de agente não os recebem.
@@ -86,18 +86,18 @@ flowchart LR
 
 | Camada | Escolha | Por quê |
 |---|---|---|
-| Linguagem | **TypeScript** em todo o projeto (monorepo pnpm) | Um só idioma para front, API e workers; tipos compartilhados entre ações de agente, API e Executor. |
-| Frontend | **React + Vite**, TanStack Query, Tailwind | Pedido no escopo; Vite é o padrão atual, rápido e simples. |
+| Linguagem | **TypeScript** em todo o projeto (monorepo pnpm) | Um só idioma para front, API e workers. A API roda o `.ts` direto no Node 22 (type stripping), sem etapa de build. |
+| Frontend | **React + Vite**, TanStack Query, CSS simples | Pedido no escopo; Vite é o padrão atual. Um único arquivo CSS basta para o tamanho do painel. |
 | 3D | **Three.js via react-three-fiber + drei** | Three.js pedido no escopo; R3F integra a cena ao estado React (estado real dos agentes). |
 | Gráficos | Recharts | MRR, churn, receita × meta. |
 | Voz | **Web Speech API** (pt-BR) | Nativa do navegador, sem custo; texto como alternativa já previsto no escopo. |
 | API | **Node.js + Fastify** | Leve, rápido, validação de schema embutida. |
 | Banco | **PostgreSQL 16** | Relacional pedido; RLS para multi-tenant; JSONB para payloads de ações/eventos. |
-| ORM/migrações | Drizzle ORM (SQL próximo ao `db/schema.sql`) | Schema em SQL é a fonte da verdade, sem mágica. |
-| Filas / jobs | **Redis + BullMQ** | Fila de jobs com retry, agendamento recorrente e concorrência — atende "workers 24/7". |
+| Acesso ao banco | SQL puro com `pg` + migrações `.sql` numeradas | Schema em SQL é a fonte da verdade; sem ORM para aprender ou depurar. |
+| Filas / jobs | Fase 1: processo `worker` com intervalos e lock no Postgres (uma instância ativa). Fase 2/3: **Redis + BullMQ** | Na Fase 1 os jobs são poucos e periódicos; a fila com retry/concorrência entra junto com Executor e agentes. |
 | IA | **Claude API** (tool use) | Ferramentas tipadas por agente; modelos por papel (ver `05-agentes.md`). |
 | Mensagens | **WhatsApp Cloud API** (Meta) + e-mail via Resend ou SES | API oficial; templates aprovados obrigatórios fora da janela de 24 h. |
 | Cobrança | **Asaas** | Pix, boleto e cartão no Brasil, com webhooks de pagamento. |
 | WAF | **Cloudflare API** | Bloqueio de IP/regras por zona, acionado só pelo Executor. |
-| Infra | Docker Compose em VPS (web, api, workers, executor, postgres, redis) + backups diários do Postgres | Simples de operar para uma empresa pequena; escala para orquestrador depois se necessário. |
+| Infra | Docker Compose em VPS (app, worker, postgres, caddy com HTTPS automático, backup) — Redis e executor entram na Fase 2/3 | Simples de operar para uma empresa pequena; escala para orquestrador depois se necessário. |
 | Observabilidade | Logs JSON (pino) + Sentry | Erros da própria plataforma. |

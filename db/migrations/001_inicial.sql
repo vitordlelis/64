@@ -1,7 +1,7 @@
 -- VL Command — modelo de dados (PostgreSQL 16)
 -- Fonte da verdade do schema. Valores em dinheiro em centavos (bigint) para evitar erro de arredondamento.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid()
+-- gen_random_uuid() é nativo no PostgreSQL 13+.
 
 -- ============ Acesso ============
 CREATE TABLE admin (
@@ -78,9 +78,10 @@ CREATE TABLE fatura (
   pago_em          timestamptz,
   link_pagamento   text,
   gateway_id       text UNIQUE,             -- id no Asaas; idempotência do webhook
-  criado_em        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (assinatura_id, competencia)       -- impede fatura recorrente duplicada no mesmo mês
+  criado_em        timestamptz NOT NULL DEFAULT now()
 );
+-- impede fatura recorrente duplicada no mesmo mês (fatura de projeto pode coexistir)
+CREATE UNIQUE INDEX fatura_recorrente_unica ON fatura (assinatura_id, competencia) WHERE tipo = 'recorrente';
 CREATE INDEX ON fatura (status, vencimento);
 CREATE INDEX ON fatura (cliente_id);
 

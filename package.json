@@ -1,0 +1,13 @@
+{
+  "name": "vl-command",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev:api": "pnpm --filter api dev",
+    "dev:worker": "pnpm --filter api worker",
+    "dev:web": "pnpm --filter web dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter api test",
+    "build": "pnpm --filter web build"
+  }
+}

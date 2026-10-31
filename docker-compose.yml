@@ -1,0 +1,42 @@
+# Produção: docker compose up -d --build   (preencha .env a partir de .env.example)
+x-app: &app
+  build: .
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://vlc:${POSTGRES_PASSWORD}@postgres:5432/vlc
+  depends_on:
+    postgres: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { POSTGRES_USER: vlc, POSTGRES_DB: vlc, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}" }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "vlc"], interval: 5s, retries: 10 }
+
+  app:        # API + frontend (aplica migrações ao subir)
+    <<: *app
+
+  worker:     # jobs: uptime, faturas, Asaas, SSL/domínio, limpeza
+    <<: *app
+    command: ["node", "apps/api/src/worker.ts"]
+
+  caddy:      # HTTPS automático (Let's Encrypt) na frente da app; a app não é exposta diretamente
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: { DOMINIO: "${DOMINIO}" }
+    volumes: [./Caddyfile:/etc/caddy/Caddyfile:ro, caddy:/data]
+    depends_on: [app]
+
+  backup:     # pg_dump diário, mantém 14 dias em ./backups
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { PGHOST: postgres, PGUSER: vlc, PGDATABASE: vlc, PGPASSWORD: "${POSTGRES_PASSWORD}" }
+    volumes: [./backups:/backups]
+    entrypoint: ["sh", "-c", "while true; do pg_dump -Fc -f /backups/vlc-$$(date +%F).dump && find /backups -name '*.dump' -mtime +14 -delete; sleep 86400; done"]
+    depends_on: [postgres]
+
+volumes: { pgdata: {}, caddy: {} }
