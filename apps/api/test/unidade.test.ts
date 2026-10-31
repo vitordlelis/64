@@ -39,3 +39,22 @@ test('semáforo de uptime', () => {
   assert.deepEqual(avaliar([ok(2000), ok(2000), ok(2000)], 1000, false), { status: 'amarelo', queda: false, degradacao: true });
   assert.equal(avaliar([], 1000, false).status, 'desconhecido');
 });
+
+test('mensagens: variáveis, ordem dos parâmetros e horário comercial', async () => {
+  const { renderizar, parametrosEmOrdem, emHorarioComercial } = await import('../src/mensagens.ts');
+  const v = { nome_cliente: 'Ana', valor: 'R$ 10,00' };
+  assert.equal(renderizar('Oi {nome_cliente}, {valor} até {data_vencimento}. {x}', v), 'Oi Ana, R$ 10,00 até —. {x}');
+  assert.deepEqual(parametrosEmOrdem('{valor} de {nome_cliente}', v), ['R$ 10,00', 'Ana']);
+  assert.ok(emHorarioComercial(new Date('2026-11-04T13:00:00Z')));   // quarta, 10h em Brasília
+  assert.ok(!emHorarioComercial(new Date('2026-11-04T22:00:00Z')));  // quarta, 19h
+  assert.ok(!emHorarioComercial(new Date('2026-11-07T13:00:00Z')));  // sábado
+});
+
+test('catálogo de ações recusa parâmetros perigosos', async () => {
+  const { acaoValida } = await import('../src/acoes.ts');
+  const base = { sistema_id: 'x', ip: '203.0.113.9', horas: 24 };
+  assert.ok(acaoValida('bloquear_ip', base));
+  assert.ok(!acaoValida('bloquear_ip', { ...base, ip: '203.0.113.0/24' })); // faixa
+  assert.ok(!acaoValida('bloquear_ip', { ...base, horas: 1000 }));
+  assert.ok(!acaoValida('apagar_banco', {}));
+});

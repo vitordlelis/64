@@ -11,17 +11,16 @@ DO $$ BEGIN
   ASSERT (SELECT arr_cent FROM v_mrr) - (SELECT arr_cent FROM antes) = 960000, 'ARR deveria subir 960000';
 END $$;
 
-INSERT INTO agente (id, nome, funcao, modelo) VALUES ('00000000-0000-0000-0000-0000000000a1','Helena','diretor','m');
 -- gate: tarefa com ação não pode ser aprovada sem admin
 DO $$ BEGIN
   BEGIN
     INSERT INTO tarefa (agente_id, origem, titulo, descricao, acao_tipo, status)
-      VALUES ('00000000-0000-0000-0000-0000000000a1','autonoma','t','d','bloquear_ip','aprovada');
+      VALUES ((select id from agente where nome = 'Helena'),'autonoma','t','d','bloquear_ip','aprovada');
     RAISE EXCEPTION 'gate falhou: aprovou sem admin';
   EXCEPTION WHEN check_violation THEN NULL; END;
 END $$;
 INSERT INTO tarefa (agente_id, origem, titulo, descricao, acao_tipo, status, aprovada_por)
-  VALUES ('00000000-0000-0000-0000-0000000000a1','autonoma','t','d','bloquear_ip','aprovada','00000000-0000-0000-0000-000000000001');
+  VALUES ((select id from agente where nome = 'Helena'),'autonoma','t','d','bloquear_ip','aprovada','00000000-0000-0000-0000-000000000001');
 
 -- auditoria é imutável
 INSERT INTO log_auditoria (autor_tipo, acao) VALUES ('admin','login');

@@ -19,7 +19,7 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 
 **Pronto quando:** todos os sistemas reais estão cadastrados, faturas do mês saem sozinhas e uma queda real gera alerta em < 3 min.
 
-## Fase 2 — Segurança e mensagens (≈4 semanas)
+## Fase 2 — Segurança e mensagens ✅ implementada
 - **Ingestão de eventos de segurança**: pacote leve (npm/PHP/Python conforme a stack dos sistemas) que envia login falho, 4xx/5xx e volume de requisições com a chave de ingestão do sistema. Alternativa sem código: logs da Cloudflare.
 - **SOC N1 (regras determinísticas)**: força bruta, pico de requisições, varredura, anomalia de erros → `evento_seguranca` com severidade, recomendação e timeline; crítico alerta na hora.
 - **Executor** (primeira versão) com ações: `enviar_mensagens`, `bloquear_ip` — sempre via tarefa aprovada.
@@ -59,3 +59,11 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 - **Uptime**: check a cada 60 s; amarelo = lento ou 1–2 falhas; vermelho/incidente = 3 falhas seguidas não desmentidas pela sonda externa. SSL lido do certificado a cada 6 h (alerta < 15 dias); domínio pela data cadastrada (alerta < 30 dias).
 - **Sonda externa**: `apps/api/src/sonda.ts`, rodando em outro provedor com `API_URL` e `SONDA_TOKEN`.
 - **Alertas** vão para Notificações e, com Resend configurado, por e-mail (aviso e crítico).
+
+## Notas da implementação da Fase 2
+- **Aprovações** (`/aprovacoes`): toda ação com efeito vira uma *tarefa*. O **Executor** (`apps/api/src/executor.ts`, serviço próprio no Docker) só executa tarefas aprovadas, de um catálogo fechado (`apps/api/src/acoes.ts`): `enviar_mensagens`, `bloquear_ip`, `desbloquear_ip`. Alto impacto (bloqueio) pede o código do autenticador. Tarefas não decididas expiram em 72 h.
+- **Mensagens** (`/mensagens`): 5 modelos prontos (lembrete, atraso, pagamento, renovação, domínio), editáveis, com variáveis e prévia. Gatilhos por data/evento a cada 15 min, agendamento com repetição semanal/mensal, opt-out por canal (resposta "SAIR" no WhatsApp) e horário comercial. Cada lote vira uma tarefa com a lista de destinatários e o texto final; o admin pode desligar a confirmação por modelo.
+- **WhatsApp** usa template aprovado na Meta (parâmetros na ordem das variáveis do texto); status entregue/lida chegam pelo webhook. **E-mail** (Resend) registra só "enviada".
+- **SOC N1** (`/seguranca`): cada sistema recebe uma chave de ingestão e envia `login_falho`, `http_4xx`, `http_5xx`, `req`. Regras a cada minuto (janela de 5 min): força bruta (≥10), varredura (≥20 caminhos 404), pico por IP (≥300 req), anomalia de 5xx (≥20). Evento + alerta + proposta de bloqueio de 24 h no Cloudflare.
+- **Modo demonstração** (`MODO_DEMONSTRACAO=1`, só no `docker-compose.local.yml`): mensagens e bloqueios são simulados.
+- Não implementado: regra de pico global comparando com a média histórica (só pico por IP).

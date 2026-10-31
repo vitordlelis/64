@@ -4,7 +4,7 @@ import { api, useDados, type Linha } from './api';
 
 export type Campo = {
   nome: string; rotulo: string; obrigatorio?: boolean; opcoes?: [string, string][];
-  tipo?: 'text' | 'email' | 'date' | 'url' | 'number' | 'dinheiro' | 'select' | 'textarea';
+  tipo?: 'text' | 'email' | 'date' | 'datetime-local' | 'url' | 'number' | 'dinheiro' | 'select' | 'textarea';
 };
 
 // Sem `inicial` = criação (campos vazios são omitidos para valer o padrão do banco); com `inicial` = edição (vazio vira null).
@@ -35,7 +35,7 @@ export function Formulario({ campos, inicial, onSalvar, botao = 'Salvar' }:
         return (
           <label key={c.nome}>{c.rotulo}{c.obrigatorio && ' *'}
             {c.tipo === 'select' ? <select {...props}>{!c.obrigatorio && <option value="">—</option>}{c.opcoes?.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
-              : c.tipo === 'textarea' ? <textarea {...props} rows={3} />
+              : c.tipo === 'textarea' ? <textarea {...props} rows={5} />
               : <input {...props} type={c.tipo === 'dinheiro' ? 'number' : c.tipo ?? 'text'} step={c.tipo === 'dinheiro' ? '0.01' : undefined} min={c.tipo === 'dinheiro' ? 0 : undefined} />}
           </label>
         );
@@ -62,7 +62,7 @@ export const Carregando = ({ q }: { q: { isLoading: boolean; error: Error | null
 
 const NAV: [string, string][] = [
   ['/', 'Visão geral'], ['/financeiro', 'Financeiro'], ['/faturas', 'Faturas'], ['/clientes', 'Clientes'],
-  ['/sistemas', 'Sistemas'], ['/saude', 'Saúde'], ['/notificacoes', 'Notificações'], ['/auditoria', 'Auditoria'], ['/configuracoes', 'Configurações'],
+  ['/sistemas', 'Sistemas'], ['/saude', 'Saúde'], ['/aprovacoes', 'Aprovações'], ['/mensagens', 'Mensagens'], ['/seguranca', 'Segurança'], ['/notificacoes', 'Notificações'], ['/auditoria', 'Auditoria'], ['/configuracoes', 'Configurações'],
 ];
 
 export function Layout() {
@@ -70,6 +70,8 @@ export function Layout() {
   const me = useDados('/auth/me');
   const notif = useDados<Linha[]>('/notificacoes', { refetchInterval: 30_000 });
   const naoLidas = notif.data?.filter((n) => !n.lida_em).length ?? 0;
+  const pendentes = useDados<Linha[]>('/tarefas?status=aguardando', { refetchInterval: 15_000 }).data?.length ?? 0;
+  const badge: Record<string, [number, string]> = { '/notificacoes': [naoLidas, 'não lidas'], '/aprovacoes': [pendentes, 'aguardando'] };
   const [desligado, setDesligado] = useState(false);
   if (desligado) return (
     <main className="login"><div className="card" role="status">
@@ -83,7 +85,7 @@ export function Layout() {
       <nav aria-label="Principal">
         <strong className="logo">VL Command</strong>
         {NAV.map(([to, t]) => (
-          <NavLink key={to} to={to} end={to === '/'}>{t}{to === '/notificacoes' && naoLidas > 0 && <span className="badge" aria-label={`${naoLidas} não lidas`}>{naoLidas}</span>}</NavLink>
+          <NavLink key={to} to={to} end={to === '/'}>{t}{badge[to]?.[0] ? <span className="badge" aria-label={`${badge[to][0]} ${badge[to][1]}`}>{badge[to][0]}</span> : null}</NavLink>
         ))}
         {me.data.pode_desligar && (
           <button className="desligar" onClick={async () => {

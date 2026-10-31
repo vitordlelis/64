@@ -23,6 +23,10 @@ services:
     <<: *app
     command: ["node", "apps/api/src/worker.ts"]
 
+  executor:   # único que age no mundo real (mensagens, bloqueios) e só com tarefas aprovadas
+    <<: *app
+    command: ["node", "apps/api/src/executor.ts"]
+
   caddy:      # HTTPS automático (Let's Encrypt) na frente da app; a app não é exposta diretamente
     image: caddy:2-alpine
     restart: unless-stopped

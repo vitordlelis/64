@@ -10,6 +10,8 @@ x-app: &app
     APP_KEY: chave-local-somente-para-demonstracao-123
     NODE_ENV: development   # cookie sem "Secure", pois localhost é http
     PERMITIR_DESLIGAR: "1"  # botão "Desligar sistema" no site
+    MODO_DEMONSTRACAO: "1"  # mensagens e bloqueios são simulados: nada sai para clientes reais
+  env_file: { path: .env, required: false }  # opcional: ANTHROPIC_API_KEY para os agentes (Fase 3)
   depends_on:
     postgres: { condition: service_healthy }
 
@@ -28,5 +30,9 @@ services:
   worker:
     <<: *app
     command: ["sh", "-c", "sleep 15 && node apps/api/src/worker.ts"]  # espera a app criar o banco
+
+  executor:   # único processo que executa ações aprovadas
+    <<: *app
+    command: ["sh", "-c", "sleep 15 && node apps/api/src/executor.ts"]
 
 volumes: { pgdata-local: {} }

@@ -20,7 +20,7 @@ const ENTIDADES = {
     campos: {
       cliente_id: uuid, nome: { type: 'string', minLength: 1, maxLength: 200 },
       url: { type: 'string', pattern: '^https?://', maxLength: 500 },
-      health_url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 },
+      health_url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 }, waf_zona_id: txt,
       hospedagem: txt, dominio: txt, dominio_expira_em: data, ssl_expira_em: data,
       credenciais_ref: txt, notas: txt, latencia_limite_ms: { type: 'integer', minimum: 100, maximum: 30000 },
     },
@@ -32,6 +32,16 @@ const ENTIDADES = {
       valor_projeto_cent: cent, valor_mensal_cent: cent, ciclo: { enum: ['mensal', 'trimestral', 'anual'] },
       dia_vencimento: { type: 'integer', minimum: 1, maximum: 28 }, inicio_em: { type: 'string', format: 'date' },
       renovacao_em: data, status: { enum: ['ativa', 'pausada'] }, // cancelar tem rota própria
+    },
+  },
+  modelos: {
+    tabela: 'modelo_mensagem', obrigatorios: ['nome', 'canal', 'corpo', 'gatilho'],
+    campos: {
+      nome: { type: 'string', minLength: 1, maxLength: 200 }, canal: { enum: ['email', 'whatsapp'] }, assunto: txt,
+      corpo: { type: 'string', minLength: 1, maxLength: 4000 }, wa_template_nome: txt, wa_template_status: { enum: ['pendente', 'aprovado', 'rejeitado', null] },
+      gatilho: { enum: ['manual', 'dias_vencimento', 'fatura_gerada', 'pagamento_confirmado', 'assinatura_expirando', 'dominio_expirando', 'ssl_expirando', 'agendado'] },
+      gatilho_dias: { type: ['integer', 'null'], minimum: -60, maximum: 365 }, horario_comercial: { type: 'boolean' }, exige_confirmacao: { type: 'boolean' },
+      ativo: { type: 'boolean' }, proximo_envio_em: { type: ['string', 'null'], format: 'date-time' }, repeticao: { enum: ['nenhuma', 'semanal', 'mensal'] },
     },
   },
 } as const;

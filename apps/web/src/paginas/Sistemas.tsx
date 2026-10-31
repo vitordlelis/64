@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, data, useAcao, useDados, type Linha } from '../api';
@@ -59,8 +60,27 @@ export function Sistema() {
               <tbody>{h.incidentes.map((i: Linha) => <tr key={i.id}><td>{i.tipo}</td><td>{data(i.inicio_em)}</td><td>{i.fim_em ? data(i.fim_em) : <strong className="erro">em andamento</strong>}</td><td>{i.descricao}</td></tr>)}</tbody></table>
           )}
         </Secao>
+        <ChaveIngestao id={s.id} />
         <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema()} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
       </div>
     </>
+  );
+}
+
+function ChaveIngestao({ id }: { id: string }) {
+  const [chave, setChave] = useState('');
+  const gerar = useAcao(async () => setChave((await api<Linha>(`/sistemas/${id}/chave-ingestao`, 'POST')).chave));
+  const exemplo = `fetch('${location.origin}/api/ingest/eventos', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-vlc-chave': '${chave || 'SUA_CHAVE'}' },
+  body: JSON.stringify([{ tipo: 'login_falho', ip: req.ip, caminho: '/login' }]),
+}).catch(() => {}); // tipos: login_falho, http_4xx, http_5xx, req`;
+  return (
+    <Secao titulo="Segurança: envio de eventos">
+      <p className="ajuda">O sistema do cliente envia eventos (login falho, 4xx, 5xx) para o SOC detectar ataques. Gerar uma nova chave invalida a anterior.</p>
+      <button onClick={() => (!chave || confirm('Gerar outra chave? A atual deixa de funcionar.')) && gerar.mutate(undefined)}>Gerar chave de ingestão</button>
+      {chave && <p role="status"><strong>Copie agora, ela não será mostrada de novo:</strong> <code>{chave}</code></p>}
+      <pre>{exemplo}</pre>
+    </Secao>
   );
 }

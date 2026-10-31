@@ -48,4 +48,6 @@ docker compose -f docker-compose.local.yml down -v
 - O sistema "Site de imóveis" aparece **fora do ar de propósito**, para você ver alertas e incidentes.
 - Os outros sites de demonstração ficam verdes após ~1 minuto (o monitor checa a cada 60 s).
 - Pode cadastrar, editar e marcar faturas como pagas à vontade: é tudo local.
-- Asaas, e-mail e WhatsApp ficam desligados neste modo.
+- Asaas fica desligado; e-mail, WhatsApp e bloqueio de IP são **simulados** (nada sai do seu computador).
+- Em **Aprovações** já haverá uma cobrança de atraso e, ~1 minuto depois de ligar, um bloqueio de IP proposto pelo SOC
+  (um ataque de força bruta simulado). Aprove e veja o resultado em Mensagens → Histórico e em Segurança.

@@ -14,6 +14,9 @@ import { financeiro } from './routes/financeiro.ts';
 import { saude } from './routes/saude.ts';
 import { admin } from './routes/admin.ts';
 import { externos } from './routes/externos.ts';
+import { tarefas } from './routes/tarefas.ts';
+import { mensagens } from './routes/mensagens.ts';
+import { seguranca } from './routes/seguranca.ts';
 
 const WEB = fileURLToPath(new URL('../../web/dist/', import.meta.url));
 
@@ -26,7 +29,7 @@ export async function criarApp() {
   auth(app);
   auditarEscritas(app);
   app.get('/api/health', async () => { await q('select 1'); return { ok: true }; });
-  for (const rotas of [crud, faturas, financeiro, saude, admin, externos]) rotas(app);
+  for (const rotas of [crud, faturas, financeiro, saude, admin, externos, tarefas, mensagens, seguranca]) rotas(app);
 
   if (existsSync(WEB)) {
     await app.register(fastifyStatic, { root: WEB });

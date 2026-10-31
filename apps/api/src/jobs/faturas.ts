@@ -1,6 +1,7 @@
 import { q } from '../db.ts';
 import { notificar } from '../notificar.ts';
 import { asaas, asaasAtivo } from '../asaas.ts';
+import { brl } from '../util.ts';
 
 // Gera a fatura recorrente da competência para cada assinatura ativa no mês do seu ciclo. Idempotente.
 export async function gerarFaturas(competencia?: string) {
@@ -22,7 +23,7 @@ export async function marcarVencidas() {
     where f.status = 'aberta' and f.vencimento < current_date and c.id = f.cliente_id
     returning f.valor_cent, f.vencimento, c.nome`);
   for (const f of vencidas) {
-    await notificar('fatura_vencida', 'aviso', `Fatura vencida: ${f.nome} — ${(f.valor_cent / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} (venc. ${f.vencimento})`, '/faturas?status=vencida');
+    await notificar('fatura_vencida', 'aviso', `Fatura vencida: ${f.nome} — ${brl(f.valor_cent)} (venc. ${f.vencimento})`, '/faturas?status=vencida');
   }
 }
 

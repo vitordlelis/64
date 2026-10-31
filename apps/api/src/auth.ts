@@ -8,7 +8,14 @@ declare module 'fastify' {
 }
 
 export const COOKIE = 'vlc_sessao';
-const PUBLICAS = ['/api/auth/login', '/api/webhooks/', '/api/sonda/', '/api/health'];
+const PUBLICAS = ['/api/auth/login', '/api/webhooks/', '/api/sonda/', '/api/ingest/', '/api/health'];
+
+// Confirmação extra (step-up) para ações de alto impacto.
+export async function confereTotp(adminId: string, codigo?: string) {
+  if (!codigo || !/^\d{6}$/.test(codigo)) return false;
+  const [a] = await q('select totp_secret from admin where id = $1', [adminId]);
+  return Boolean(a) && verificaTotp(decifra(a.totp_secret), codigo);
+}
 
 export function auth(app: FastifyInstance) {
   app.decorateRequest('adminId', null);
@@ -52,5 +59,6 @@ export function auth(app: FastifyInstance) {
   app.get('/api/auth/me', async (req) => ({
     ...(await q('select id, email from admin where id = $1', [req.adminId]))[0],
     pode_desligar: process.env.PERMITIR_DESLIGAR === '1',
+    modo_demonstracao: process.env.MODO_DEMONSTRACAO === '1',
   }));
 }

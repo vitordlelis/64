@@ -2,6 +2,9 @@
 import { pool, q } from './db.ts';
 import { rodarUptime, rodarVencimentos } from './jobs/uptime.ts';
 import { gerarFaturas, marcarVencidas, sincronizarAsaas } from './jobs/faturas.ts';
+import { rodarSoc } from './jobs/soc.ts';
+import { rodarGatilhos } from './mensagens.ts';
+import { expirarTarefas } from './routes/tarefas.ts';
 
 const MIN = 60_000;
 const JOBS: [string, number, () => Promise<unknown>][] = [
@@ -9,6 +12,9 @@ const JOBS: [string, number, () => Promise<unknown>][] = [
   ['asaas', 5 * MIN, sincronizarAsaas],
   ['faturas', 60 * MIN, async () => { await gerarFaturas(); await marcarVencidas(); }],
   ['vencimentos', 6 * 60 * MIN, rodarVencimentos],
+  ['soc', MIN, rodarSoc],
+  ['mensagens', 15 * MIN, rodarGatilhos],
+  ['expirar_tarefas', 10 * MIN, expirarTarefas],
   ['limpeza', 24 * 60 * MIN, () => q(`delete from check_saude where checado_em < now() - interval '90 days';
     delete from evento_bruto where ocorrido_em < now() - interval '30 days'; delete from sessao where expira_em < now();`)],
 ];

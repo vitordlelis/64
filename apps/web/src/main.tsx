@@ -11,6 +11,9 @@ import { Clientes, Cliente } from './paginas/Clientes';
 import { Sistemas, Sistema } from './paginas/Sistemas';
 import { Saude } from './paginas/Saude';
 import { Notificacoes, Auditoria, Configuracoes } from './paginas/Admin';
+import { Aprovacoes } from './paginas/Aprovacoes';
+import { Mensagens } from './paginas/Mensagens';
+import { Seguranca } from './paginas/Seguranca';
 import './estilo.css';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: true } } });
@@ -30,6 +33,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path="sistemas" element={<Sistemas />} />
             <Route path="sistemas/:id" element={<Sistema />} />
             <Route path="saude" element={<Saude />} />
+            <Route path="aprovacoes" element={<Aprovacoes />} />
+            <Route path="mensagens" element={<Mensagens />} />
+            <Route path="seguranca" element={<Seguranca />} />
             <Route path="notificacoes" element={<Notificacoes />} />
             <Route path="auditoria" element={<Auditoria />} />
             <Route path="configuracoes" element={<Configuracoes />} />

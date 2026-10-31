@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { pool, q } from '../db.ts';
 import { cifra, hashSenha } from '../crypto.ts';
 import { gerarFaturas, marcarVencidas } from '../jobs/faturas.ts';
+import { prepararLote, type Destinatario } from '../mensagens.ts';
 
 export const DEMO = { email: 'demo@vlcommand.local', senha: 'demo-vl-command', segredo2fa: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP' };
 
@@ -68,9 +69,37 @@ export async function popularDemo() {
   return true;
 }
 
+// Fase 2: eventos de segurança, histórico de mensagens e uma aprovação pendente. Roda uma vez por banco de demonstração.
+export async function popularDemoFase2() {
+  const [demo] = await q('select 1 from admin where email = $1', [DEMO.email]);
+  if (!demo || (await q('select 1 from envio_mensagem limit 1')).length) return false;
+  const sis = async (nome: string) => (await q('select id from sistema where nome = $1', [nome]))[0]?.id;
+  const clinica = await sis('Agendamento de consultas'), padaria = await sis('Site + pedidos online');
+  // Ataque "ao vivo": o SOC detecta no próximo minuto e propõe bloquear o IP (203.0.113.x é faixa de documentação).
+  await q(`insert into evento_bruto (sistema_id, tipo, ip, caminho, ocorrido_em)
+    select $1, 'login_falho', '203.0.113.45', '/login', now() - (n * interval '5 seconds') from generate_series(1, 18) n`, [clinica]);
+  await q(`insert into evento_seguranca (sistema_id, tipo, severidade, ip_origem, descricao, recomendacao, status, detectado_em) values
+    ($1, 'varredura', 'media', '198.51.100.7', '34 endereços inexistentes acessados em 5 minutos (varredura de caminhos)', 'Bloquear o IP e conferir arquivos expostos.', 'resolvido', now() - interval '3 days'),
+    ($1, 'anomalia_erros', 'alta', null, '27 erros 5xx em 5 minutos', 'Verificar logs e deploys recentes.', 'reconhecido', now() - interval '9 days')`, [padaria]);
+  // Histórico de mensagens já enviadas.
+  await q(`insert into envio_mensagem (modelo_id, cliente_id, canal, destino, conteudo, status, provedor_id, criado_em)
+    select m.id, c.id, 'email', c.email, 'Olá, ' || c.nome || '! Recebemos seu pagamento. Obrigado!', s, 'demo-' || c.id, now() - interval '5 days'
+    from modelo_mensagem m, cliente c, (values ('enviada'), ('entregue'), ('lida')) v(s)
+    where m.nome = 'Confirmação de pagamento' and c.nome in ('Clínica Vida', 'Padaria Sol', 'Escola Aprender')
+      and (c.nome, s) in (('Clínica Vida', 'lida'), ('Padaria Sol', 'entregue'), ('Escola Aprender', 'enviada'))`);
+  // Uma cobrança de atraso esperando sua aprovação.
+  const [m] = await q("select * from modelo_mensagem where nome = 'Aviso de atraso'");
+  const dest = await q<Destinatario>(`select c.id as cliente_id, c.nome as nome_cliente, c.email, c.whatsapp, c.optout_email, c.optout_whatsapp,
+      f.id as fatura_id, f.valor_cent, f.vencimento::text as data, 'Catálogo e estoque' as nome_sistema, f.link_pagamento
+    from fatura f join cliente c on c.id = f.cliente_id where f.status = 'vencida'`);
+  await prepararLote(m, dest, 'evento');
+  return true;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   console.log((await popularDemo())
     ? `Dados de demonstração criados.\n  Login: ${DEMO.email}\n  Senha: ${DEMO.senha}\n  2FA (cadastre no app autenticador): ${DEMO.segredo2fa}`
-    : 'Banco já tem clientes; demonstração não aplicada.');
+    : 'Banco já tem clientes; demonstração da Fase 1 não aplicada.');
+  if (await popularDemoFase2()) console.log('Dados de demonstração da Fase 2 criados.');
   await pool.end();
 }

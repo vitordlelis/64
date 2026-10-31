@@ -20,6 +20,7 @@ export const camposSistema = (clientes?: Linha[]): Campo[] => [
   { nome: 'dominio', rotulo: 'Domínio' },
   { nome: 'dominio_expira_em', rotulo: 'Domínio vence em', tipo: 'date' },
   { nome: 'ssl_expira_em', rotulo: 'SSL vence em (atualizado automaticamente)', tipo: 'date' },
+  { nome: 'waf_zona_id', rotulo: 'Cloudflare: ID da zona (para bloqueio de IP)' },
   { nome: 'credenciais_ref', rotulo: 'Onde estão os acessos (referência no cofre — nunca a senha)' },
   { nome: 'notas', rotulo: 'Notas', tipo: 'textarea' },
 ];
