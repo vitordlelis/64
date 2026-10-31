@@ -36,7 +36,7 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 
 **Pronto quando:** cada agente gerou ao menos uma proposta útil aprovada e executada, e nenhuma ação rodou sem aprovação (verificado no log).
 
-## Fase 4 — Escritório 3D e voz (≈3 semanas)
+## Fase 4 — Escritório 3D e voz ✅ implementada
 - Cena R3F: escritório low-poly, uma mesa por agente, personagem com animações de estado (trabalhando / aguardando / ocioso) ligadas ao `agente.estado` por SSE.
 - Telão com faturamento anual (dados de `v_receita_mensal`).
 - Clique no agente abre painel com tarefa atual e histórico.
@@ -74,3 +74,9 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 - Agenda: Helena diário (horário comercial), Rafael diário, Marcos semanal, Lara mensal, Vigia a cada alerta médio+, Sentinela só sob demanda. Pedidos por texto entram na fila e são respondidos em segundos.
 - **Pen test**: autorização + domínio verificado por DNS TXT + código do autenticador. As checagens (HTTPS, cabeçalhos, cookies, arquivos expostos) rodam no Executor, só com GET; a Sentinela escreve a análise.
 - Diferença em relação ao escopo: Engenheiro e Designer registram **recomendações detalhadas** em vez de abrir PRs, pois os repositórios dos clientes ainda não estão integrados. Abrir PR no GitHub é o próximo passo natural (nova ação no catálogo do Executor).
+
+## Notas da implementação da Fase 4
+- `/escritorio` (React Three Fiber, carregado só nesta tela): uma mesa por agente; o personagem digita e o monitor acende em azul quando **trabalhando**, um "!" amarelo flutua quando há proposta **aguardando aprovação**, e ele fica encostado quando **ocioso** (cinza se pausado). Estado lido do banco a cada 3 s.
+- Telão com o faturamento do ano. Clique no agente abre o painel com o que está fazendo e o pedido por texto.
+- **Voz** (Chrome/Edge, Web Speech API em pt-BR): diga o nome do agente e o pedido; a resposta é falada. "Confirmo" aprova a única proposta pendente do agente selecionado, sempre com um clique de confirmação; ações de alto impacto continuam exigindo o código do autenticador na tela Aprovações.
+- Lista em texto dos agentes ao lado da cena, para leitores de tela.

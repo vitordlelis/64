@@ -3,8 +3,8 @@
 Plataforma única da VL Systems para administrar todos os sistemas entregues: faturamento, disponibilidade,
 segurança defensiva, agentes de IA 24/7 com aprovação humana, escritório 3D e mensagens automáticas.
 
-**Status:** Fases 0 a 3 implementadas — gestão (clientes, contratos, faturas + Asaas, financeiro, uptime), aprovações + Executor,
-central de mensagens (e-mail/WhatsApp), SOC Nível 1, agentes de IA e pen test passivo. Ver [plano em fases](docs/02-plano-fases.md).
+**Status:** Fases 0 a 4 implementadas (todo o escopo) — gestão (clientes, contratos, faturas + Asaas, financeiro, uptime), aprovações + Executor,
+central de mensagens (e-mail/WhatsApp), SOC Nível 1, agentes de IA, pen test passivo e escritório 3D com comando de voz. Ver [plano em fases](docs/02-plano-fases.md).
 
 ## Só quero ver o sistema
 

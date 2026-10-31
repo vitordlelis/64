@@ -51,6 +51,10 @@ ANTHROPIC_API_KEY=sua-chave
 ```
 Cada agente tem teto de US$ 1 por dia (ajustável). Sem a chave, a tela Agentes mostra um histórico de exemplo.
 
+## Escritório 3D e voz
+Menu **Escritório 3D**. Para falar com os agentes use **Chrome ou Edge** e permita o microfone quando o navegador pedir.
+Diga o nome do agente e o pedido (ex.: "Helena, como foi o dia?"). Sem a chave da API os agentes não respondem, mas a cena mostra os estados.
+
 ## O que esperar
 - O sistema "Site de imóveis" aparece **fora do ar de propósito**, para você ver alertas e incidentes.
 - Os outros sites de demonstração ficam verdes após ~1 minuto (o monitor checa a cada 60 s).
