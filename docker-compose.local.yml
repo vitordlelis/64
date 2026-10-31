@@ -5,13 +5,14 @@
 x-app: &app
   build: .
   image: vl-command-local
+  restart: on-failure   # volta sozinho após erro passageiro; o botão "Desligar" sai sem erro e não reinicia
   environment:
     DATABASE_URL: postgres://vlc:vlc@postgres:5432/vlc
     APP_KEY: chave-local-somente-para-demonstracao-123
     NODE_ENV: development   # cookie sem "Secure", pois localhost é http
     PERMITIR_DESLIGAR: "1"  # botão "Desligar sistema" no site
     MODO_DEMONSTRACAO: "1"  # mensagens e bloqueios são simulados: nada sai para clientes reais
-  env_file: { path: .env, required: false }  # opcional: ANTHROPIC_API_KEY para os agentes (Fase 3)
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}  # opcional, lida do arquivo .env desta pasta (agentes de IA)
   depends_on:
     postgres: { condition: service_healthy }
 

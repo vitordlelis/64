@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { Aprovacoes } from './paginas/Aprovacoes';
 import { Mensagens } from './paginas/Mensagens';
 import { Seguranca } from './paginas/Seguranca';
 import { Agentes } from './paginas/Agentes';
+const Escritorio = lazy(() => import('./paginas/Escritorio')); // three.js só carrega nesta tela
 import './estilo.css';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: true } } });
@@ -38,6 +39,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="mensagens" element={<Mensagens />} />
             <Route path="seguranca" element={<Seguranca />} />
             <Route path="agentes" element={<Agentes />} />
+            <Route path="escritorio" element={<Suspense fallback={<p>Carregando escritório…</p>}><Escritorio /></Suspense>} />
             <Route path="notificacoes" element={<Notificacoes />} />
             <Route path="auditoria" element={<Auditoria />} />
             <Route path="configuracoes" element={<Configuracoes />} />

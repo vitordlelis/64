@@ -77,6 +77,14 @@ label.check { flex-direction: row; align-items: center; gap: .4rem; color: var(-
 .pill.est-trabalhando { background: #dcfce7; } .pill.est-aguardando { background: #fef3c7; }
 .linha { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin: .5rem 0; }
 .linha label { flex-direction: row; align-items: center; gap: .4rem; }
-form.comando { display: flex; gap: .5rem; } form.comando input { flex: 1; }
+form.comando { display: flex; gap: .5rem; } form.comando input { flex: 1; min-width: 0; }
 .ultima { white-space: pre-wrap; max-height: 8em; overflow: auto; }
 ol.passos li { margin: .4rem 0; }
+.escritorio { display: grid; grid-template-columns: 1fr 360px; gap: 1rem; height: calc(100vh - 3rem); }
+.escritorio .cena { border-radius: 10px; overflow: hidden; min-height: 420px; background: #e2e8f0; }
+.escritorio .painel { overflow: auto; margin: 0; }
+.placa { background: rgba(15, 23, 42, .85); color: #fff; padding: .2rem .5rem; border-radius: 6px; font-size: 12px; white-space: nowrap; text-align: center; display: flex; flex-direction: column; pointer-events: none; }
+.placa.aguardando span { color: #fbbf24; } .placa.trabalhando span { color: #7dd3fc; } .placa.pausado { opacity: .6; }
+.voz { display: flex; flex-direction: column; gap: .4rem; margin: .75rem 0; }
+.voz button { font-size: 1.1rem; }
+@media (max-width: 1000px) { .escritorio { grid-template-columns: 1fr; height: auto; } .escritorio .cena { height: 60vh; } }
