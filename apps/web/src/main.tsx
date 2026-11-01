@@ -16,7 +16,8 @@ import { Mensagens } from './paginas/Mensagens';
 import { Seguranca } from './paginas/Seguranca';
 import { Agentes } from './paginas/Agentes';
 const Escritorio = lazy(() => import('./paginas/Escritorio')); // three.js só carrega nesta tela
-import './estilo.css';
+const Stack = lazy(() => import('./paginas/Stack'));
+import './index.css';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: true } } });
 
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="mensagens" element={<Mensagens />} />
             <Route path="seguranca" element={<Seguranca />} />
             <Route path="agentes" element={<Agentes />} />
+            <Route path="stack" element={<Suspense fallback={null}><Stack /></Suspense>} />
             <Route path="escritorio" element={<Suspense fallback={<p>Carregando escritório…</p>}><Escritorio /></Suspense>} />
             <Route path="notificacoes" element={<Notificacoes />} />
             <Route path="auditoria" element={<Auditoria />} />

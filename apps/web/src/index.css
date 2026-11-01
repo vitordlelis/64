@@ -1,0 +1,15 @@
+/* Tailwind SEM o preflight (reset global), para não mudar o visual das telas existentes.
+   O estilo do painel fica na camada "base"; os utilitários do Tailwind ficam acima dele. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "./estilo.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Reset mínimo só dentro de blocos Tailwind/shadcn: envolva-os em <div className="tw">. */
+@layer base {
+  .tw *, .tw ::before, .tw ::after { border: 0 solid; }
+  .tw :where(h1, h2, h3, h4, p, ul, ol, li, figure) { margin: 0; padding: 0; }
+  .tw :where(ul, ol) { list-style: none; }
+  .tw :where(button) { background: none; color: inherit; padding: 0; border-radius: 0; font: inherit; cursor: pointer; }
+  .tw :where(svg) { display: block; }
+}
