@@ -57,7 +57,7 @@ export function Feedback() {
         {avisos.map((a) => {
           const I = ICONE[a.tipo];
           return (
-            <div key={a.id} className={`aviso ${a.tipo}`}>
+            <div key={a.id} className={`toast ${a.tipo}`}>
               <I size={18} aria-hidden /><span>{a.texto}</span>
               <button className="icone" aria-label="Fechar aviso" onClick={() => setAvisos((l) => l.filter((x) => x.id !== a.id))}><X size={14} /></button>
             </div>

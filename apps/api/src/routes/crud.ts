@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { q } from '../db.ts';
 import { sincronizarGithub } from '../github.ts';
+import { checarAgora } from '../jobs/uptime.ts';
 
 // Repositório ligado/alterado: verifica o GitHub na hora, sem esperar o ciclo de 10 min.
 const verificarRepo = (tabela: string, r: { id?: string; github_repo?: string } | undefined) => {
@@ -71,6 +72,7 @@ export function crud(app: FastifyInstance) {
       const ks = Object.keys(req.body);
       const [r] = await q(`insert into ${tabela} (${ks.join(',')}) values (${ks.map((_, i) => `$${i + 1}`).join(',')}) returning *`, Object.values(req.body));
       verificarRepo(tabela, r);
+      if (tabela === 'sistema') void checarAgora(r.id).catch(() => {}); // primeira medição já, sem esperar 1 min
       return rep.code(201).send(r);
     });
 

@@ -54,6 +54,13 @@ Depois, na ficha de cada cliente, use **Importar um repositório do GitHub**: o 
 passa a ser monitorado (no ar, tempo de resposta, SSL) e o repositório é verificado a cada 10 minutos
 (build/testes do GitHub Actions, commits, PRs, issues e última versão). Se o build quebrar, chega um alerta.
 
+## Conexões de cada sistema
+Na página de cada sistema, o quadro **Conexões deste sistema** mostra as 3 ligações e o que falta:
+1. **Site no ar** — só o endereço; funciona para qualquer plataforma. Botão "Verificar agora".
+2. **Código no GitHub** — Lovable, Bolt, v0, Cursor e Vercel sincronizam com o GitHub; ligue o repositório e pronto.
+3. **Eventos de segurança** (opcional) — o botão gera um pedido pronto para colar no construtor do site.
+   Só funciona com o VL Command na internet (os sites publicados não alcançam o seu computador).
+
 ## Escritório 3D e voz
 Menu **Escritório 3D**. Para falar com os agentes use **Chrome ou Edge** e permita o microfone quando o navegador pedir.
 Diga o nome do agente e o pedido (ex.: "Helena, como foi o dia?"). Sem a chave da API os agentes não respondem, mas a cena mostra os estados.

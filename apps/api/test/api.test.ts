@@ -137,5 +137,10 @@ test('uptime: 3 falhas abrem incidente, sonda externa evita falso positivo, volt
   assert.equal(await estado(), 'verde');
   assert.equal(await abertos(), 0);
   assert.equal((await req('GET', `/api/sistemas/${sistemaId}/saude`)).body.incidentes.length, 1);
+  const con = (await req('GET', `/api/sistemas/${sistemaId}/conexoes`)).body;
+  assert.equal(con.ultimo_check.ok, true);
+  assert.equal(con.chave_gerada, false);
+  assert.equal(con.ultimo_evento, null);
+  assert.equal((await req('POST', `/api/sistemas/${sistemaId}/checar`)).body.ok, true);
   assert.equal((await req('GET', '/api/sonda/alvos', undefined, { authorization: 'Bearer errado' })).status, 401);
 });

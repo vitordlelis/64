@@ -4,7 +4,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { api, data, useAcao, useDados, type Linha } from '../api';
 import { camposSistema } from '../campos';
 import { Carregando, Formulario, Kpi, Secao, Status, Vazio } from '../ui';
-import { ExternalLink, FolderGit2, GitCommitHorizontal, GitPullRequest, CircleDot, Plus, RefreshCw, Server, Tag } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleX, ExternalLink, FolderGit2, GitCommitHorizontal, GitPullRequest, CircleDot, Plus, RefreshCw, Server, Tag } from 'lucide-react';
 import { avisar, confirmar } from '../feedback';
 
 export function Sistemas() {
@@ -55,6 +55,7 @@ export function Sistema() {
           <Kpi titulo="Uptime 24h" valor={up(h.uptime.h24)} /><Kpi titulo="Uptime 7 dias" valor={up(h.uptime.d7)} /><Kpi titulo="Uptime 30 dias" valor={up(h.uptime.d30)} />
         </div>
       )}
+      <Conexoes s={s} />
       <Secao titulo="Tempo de resposta (24h)">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={h?.checks.filter((c: Linha) => c.origem === 'principal').map((c: Linha) => ({ hora: new Date(c.checado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), ms: c.latencia_ms }))}>
@@ -71,7 +72,6 @@ export function Sistema() {
           )}
         </Secao>
         <PainelGithub s={s} />
-        <ChaveIngestao id={s.id} />
         <PenTest s={s} />
         <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema(undefined, repos.data)} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
       </div>
@@ -79,20 +79,63 @@ export function Sistema() {
   );
 }
 
-function ChaveIngestao({ id }: { id: string }) {
+// As 3 ligações de um sistema: site (monitor), código (GitHub) e eventos de segurança (o site avisa o VL Command).
+function Conexoes({ s }: { s: Linha }) {
+  const c = useDados(`/sistemas/${s.id}/conexoes`, { refetchInterval: 20_000 });
+  const checar = useAcao(() => api(`/sistemas/${s.id}/checar`, 'POST'));
   const [chave, setChave] = useState('');
-  const gerar = useAcao(async () => setChave((await api<Linha>(`/sistemas/${id}/chave-ingestao`, 'POST')).chave));
-  const exemplo = `fetch('${location.origin}/api/ingest/eventos', {
-  method: 'POST',
-  headers: { 'content-type': 'application/json', 'x-vlc-chave': '${chave || 'SUA_CHAVE'}' },
-  body: JSON.stringify([{ tipo: 'login_falho', ip: req.ip, caminho: '/login' }]),
-}).catch(() => {}); // tipos: login_falho, http_4xx, http_5xx, req`;
+  const gerar = useAcao(async () => setChave((await api<Linha>(`/sistemas/${s.id}/chave-ingestao`, 'POST')).chave));
+  const local = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname);
+  const k = c.data;
+  if (!k) return <Secao titulo="Conexões"><Carregando q={c} /></Secao>;
+  const site = k.ultimo_check ? (k.ultimo_check.ok ? 'ok' : 'erro') : 'pendente';
+  const codigo = !s.github_repo ? 'pendente' : k.github_erro ? 'erro' : k.github_atualizado_em ? 'ok' : 'pendente';
+  const eventos = k.ultimo_evento ? 'ok' : 'pendente';
+  const pedido = `Adicione monitoramento de segurança a este projeto, enviando eventos para o VL Command:
+- Quando um login falhar, quando o servidor responder com erro 4xx (exceto 401) ou 5xx, envie um POST para ${location.origin}/api/ingest/eventos
+- Cabeçalhos: content-type: application/json e x-vlc-chave: ${chave || 'COLE_A_CHAVE_AQUI'}
+- Corpo: uma lista JSON, ex.: [{"tipo": "login_falho", "ip": "<IP do visitante>", "caminho": "/login"}]. Tipos válidos: login_falho, http_4xx, http_5xx.
+- O envio deve ser feito no servidor (backend, API route, edge function ou middleware), nunca no navegador, para a chave não ficar exposta. Guarde a chave numa variável de ambiente (VLC_CHAVE).
+- Não espere a resposta e ignore falhas do envio: o site nunca pode ficar lento ou quebrar por causa disso.`;
+  const Item = ({ estado, titulo, children }: { estado: string; titulo: string; children: React.ReactNode }) => (
+    <li className={`conexao ${estado}`}>
+      <span className="conexao-icone" aria-hidden>{estado === 'ok' ? <CircleCheck size={18} /> : estado === 'erro' ? <CircleX size={18} /> : <CircleDashed size={18} />}</span>
+      <div><span><strong>{titulo}</strong> <small className="conexao-estado">{estado === 'ok' ? 'conectado' : estado === 'erro' ? 'com problema' : 'pendente'}</small></span>{children}</div>
+    </li>
+  );
   return (
-    <Secao titulo="Segurança: envio de eventos">
-      <p className="ajuda">O sistema do cliente envia eventos (login falho, 4xx, 5xx) para o SOC detectar ataques. Gerar uma nova chave invalida a anterior.</p>
-      <button onClick={async () => (!chave || await confirmar({ titulo: 'Gerar outra chave?', texto: 'A chave atual deixa de funcionar imediatamente.', acao: 'Gerar nova chave', perigo: true })) && gerar.mutate(undefined)}>Gerar chave de ingestão</button>
-      {chave && <p role="status"><strong>Copie agora, ela não será mostrada de novo:</strong> <code>{chave}</code></p>}
-      <pre>{exemplo}</pre>
+    <Secao titulo="Conexões deste sistema">
+      <ul className="conexoes">
+        <Item estado={site} titulo="1. Site no ar">
+          <p>{k.ultimo_check ? <>Última verificação {data(k.ultimo_check.checado_em)}: {k.ultimo_check.ok ? `respondeu em ${k.ultimo_check.latencia_ms} ms` : `falhou (${k.ultimo_check.erro})`}.</> : 'Ainda não verificado.'} Funciona para qualquer site, de qualquer plataforma: basta o endereço.</p>
+          <button className="secundario" disabled={checar.isPending} onClick={() => checar.mutate(undefined)}><RefreshCw size={14} aria-hidden /> Verificar agora</button>
+        </Item>
+        <Item estado={codigo} titulo="2. Código no GitHub">
+          <p>{!k.github_conectado ? <>Conecte sua conta em <Link to="/configuracoes#github">Configurações → GitHub</Link> e depois escolha o repositório em “Dados”, abaixo.</>
+            : !s.github_repo ? 'Escolha o repositório no campo “Repositório no GitHub”, em Dados, abaixo.'
+            : k.github_erro ? k.github_erro : `Acompanhando ${s.github_repo}: build, commits, PRs e issues.`}</p>
+          <p><small>Feito no Lovable, Bolt, v0, Cursor ou Vercel? Essas plataformas sincronizam com o GitHub: ative a sincronização lá e o repositório aparece aqui.</small></p>
+        </Item>
+        <Item estado={eventos} titulo="3. Eventos de segurança (opcional)">
+          <p>{k.ultimo_evento ? `Último evento recebido ${data(k.ultimo_evento)}.` : 'O próprio site avisa o VL Command sobre logins falhos e erros, para o SOC detectar ataques. Exige uma pequena alteração no código do site.'}</p>
+          {local && <p className="aviso-demo"><small>Este item só funciona quando o VL Command estiver na internet: hoje ele roda no seu computador ({location.host}), que os sites publicados não conseguem acessar. Os itens 1 e 2 funcionam normalmente.</small></p>}
+          {!chave ? (
+            <button className="secundario" onClick={async () => (!k.chave_gerada || await confirmar({ titulo: 'Gerar uma chave nova?', texto: 'A chave anterior deste sistema deixa de funcionar.', acao: 'Gerar', perigo: true })) && gerar.mutate(undefined)}>
+              Gerar pedido para o construtor do site</button>
+          ) : (
+            <>
+              <p><small>Copie o texto abaixo e cole como pedido no Lovable, Bolt, Cursor (ou envie ao desenvolvedor). A chave aparece só agora.</small></p>
+              <textarea readOnly rows={9} value={pedido} onFocus={(e) => e.currentTarget.select()} aria-label="Pedido para o construtor do site" style={{ width: '100%' }} />
+              <button onClick={async () => { await navigator.clipboard.writeText(pedido).then(() => avisar('Pedido copiado'), () => avisar('Selecione o texto e copie com Ctrl+C', 'info')); }}>Copiar pedido</button>
+            </>
+          )}
+          <details><summary>Detalhes para desenvolvedores</summary><pre>{`fetch('${location.origin}/api/ingest/eventos', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-vlc-chave': process.env.VLC_CHAVE },
+  body: JSON.stringify([{ tipo: 'login_falho', ip: req.ip, caminho: '/login' }]),
+}).catch(() => {}); // tipos: login_falho, http_4xx, http_5xx, req`}</pre></details>
+        </Item>
+      </ul>
     </Secao>
   );
 }

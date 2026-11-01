@@ -64,6 +64,12 @@ const SISTEMAS = `select s.id, s.nome, c.nome as cliente, coalesce(s.health_url,
   s.latencia_limite_ms, s.ssl_expira_em, s.dominio_expira_em
   from sistema s join cliente c on c.id = s.cliente_id where c.status = 'ativo'`;
 
+// Checagem imediata de um sistema (ao cadastrar ou pelo botão "Verificar agora").
+export async function checarAgora(id: string) {
+  const [s] = await q(`${SISTEMAS} and s.id = $1`, [id]);
+  if (s) await processarSistema(s);
+}
+
 export async function rodarUptime() {
   const sistemas = await q(SISTEMAS);
   // shortcut: checa todos em paralelo; acima de ~200 sistemas, limitar a concorrência.
