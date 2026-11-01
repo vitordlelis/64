@@ -137,12 +137,12 @@ export default function Escritorio() {
     <div className="escritorio">
       <div className="cena" aria-hidden>
         <Canvas shadows camera={{ position: [0, 9, 12.5], fov: 55 }} onPointerMissed={() => setSel(null)}>
-          <color attach="background" args={['#e2e8f0']} />
-          <ambientLight intensity={0.6} />
+          <color attach="background" args={['#0b0d15']} />
+          <ambientLight intensity={0.75} />
           <directionalLight position={[5, 10, 6]} intensity={1.2} castShadow />
-          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[16, 12]} /><meshStandardMaterial color="#cbd5e1" /></mesh>
-          <mesh position={[0, 2.5, -4.6]}><boxGeometry args={[16, 5, 0.2]} /><meshStandardMaterial color="#f1f5f9" /></mesh>
-          <mesh position={[-8, 2.5, 0.4]}><boxGeometry args={[0.2, 5, 10]} /><meshStandardMaterial color="#e2e8f0" /></mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[16, 12]} /><meshStandardMaterial color="#1e2433" /></mesh>
+          <mesh position={[0, 2.5, -4.6]}><boxGeometry args={[16, 5, 0.2]} /><meshStandardMaterial color="#151a28" /></mesh>
+          <mesh position={[-8, 2.5, 0.4]}><boxGeometry args={[0.2, 5, 10]} /><meshStandardMaterial color="#121725" /></mesh>
           <Telao total={total} ano={new Date().getFullYear()} />
           {lista.map((a, i) => <Mesa key={a.id} a={a} x={POSICOES[i]![0]} z={POSICOES[i]![1]} selecionado={a.id === sel} onClick={() => setSel(a.id)} />)}
           <OrbitControls target={[0, 1, 0.5]} maxPolarAngle={Math.PI / 2.2} minDistance={6} maxDistance={20} />

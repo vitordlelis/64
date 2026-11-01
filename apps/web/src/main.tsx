@@ -19,6 +19,15 @@ const Escritorio = lazy(() => import('./paginas/Escritorio')); // three.js só c
 const Stack = lazy(() => import('./paginas/Stack'));
 import './index.css';
 
+// Brilho dos cartões: informa ao cartão sob o mouse onde o cursor está (o CSS desenha a luz).
+document.addEventListener('pointermove', (e) => {
+  const c = (e.target as Element | null)?.closest?.('.card') as HTMLElement | null;
+  if (!c) return;
+  const r = c.getBoundingClientRect();
+  c.style.setProperty('--mx', `${e.clientX - r.left}px`);
+  c.style.setProperty('--my', `${e.clientY - r.top}px`);
+}, { passive: true });
+
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: true } } });
 
 createRoot(document.getElementById('root')!).render(

@@ -49,7 +49,7 @@ export function Sistema() {
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={h?.checks.filter((c: Linha) => c.origem === 'principal').map((c: Linha) => ({ hora: new Date(c.checado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), ms: c.latencia_ms }))}>
             <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="hora" minTickGap={40} /><YAxis unit=" ms" width={70} />
-            <Tooltip /><Line dataKey="ms" name="Latência" stroke="#0ea5e9" dot={false} connectNulls={false} />
+            <Tooltip /><Line dataKey="ms" name="Latência" stroke="#a5b4fc" strokeWidth={2} dot={false} style={{ filter: 'drop-shadow(0 0 6px rgba(129,140,248,.7))' }} connectNulls={false} />
           </LineChart>
         </ResponsiveContainer>
       </Secao>

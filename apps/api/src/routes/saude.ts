@@ -13,6 +13,12 @@ export function saude(app: FastifyInstance) {
       order by (i.fim_em is null) desc, i.inicio_em desc limit 100`),
   }));
 
+  // Latência média de todos os sistemas em blocos de 10 min, últimas 6 h (gráfico da Visão geral).
+  app.get('/api/saude/latencia', () => q(`select extract(epoch from date_trunc('hour', checado_em) + floor(extract(minute from checado_em) / 10) * interval '10 minutes')::bigint * 1000 as t,
+      round(avg(latencia_ms))::int as ms
+    from check_saude where origem = 'principal' and ok and latencia_ms is not null and checado_em > now() - interval '6 hours'
+    group by 1 order by 1`));
+
   app.get<{ Params: { id: string } }>('/api/sistemas/:id/saude', async (req) => {
     const [u] = await q(`select ${UPTIME('24 hours')} as h24, ${UPTIME('7 days')} as d7, ${UPTIME('30 days')} as d30 from sistema s where s.id = $1`, [req.params.id]);
     return {

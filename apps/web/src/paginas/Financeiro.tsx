@@ -42,10 +42,10 @@ export function Financeiro() {
               <ComposedChart data={mensal}>
                 <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis tickFormatter={eixo} />
                 <Tooltip formatter={(v) => reais(Number(v))} /><Legend />
-                <Bar dataKey="recorrente" name="Recorrente" stackId="r" fill="#0ea5e9" />
-                <Bar dataKey="projeto" name="Projeto" stackId="r" fill="#6366f1" />
-                <Line dataKey="meta" name="Meta" stroke="#f59e0b" strokeWidth={2} />
-                <Line dataKey="ano_anterior" name={`${ano - 1}`} stroke="#94a3b8" strokeDasharray="4 4" />
+                <Bar dataKey="recorrente" name="Recorrente" stackId="r" fill="#22d3ee" fillOpacity={0.55} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="projeto" name="Projeto" stackId="r" fill="#818cf8" fillOpacity={0.8} radius={[4, 4, 0, 0]} />
+                <Line dataKey="meta" name="Meta" stroke="#fbbf24" strokeWidth={2} dot={false} />
+                <Line dataKey="ano_anterior" name={`${ano - 1}`} stroke="#64748b" strokeDasharray="4 4" dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </Secao>
@@ -53,13 +53,13 @@ export function Financeiro() {
             <Secao titulo="Evolução do MRR">
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={mensal}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis tickFormatter={eixo} />
-                  <Tooltip formatter={(v) => reais(Number(v))} /><Line dataKey="mrr" name="MRR" stroke="#0ea5e9" strokeWidth={2} /></LineChart>
+                  <Tooltip formatter={(v) => reais(Number(v))} /><Line dataKey="mrr" name="MRR" stroke="#a5b4fc" strokeWidth={2.5} dot={false} style={{ filter: 'drop-shadow(0 0 6px rgba(129,140,248,.7))' }} /></LineChart>
               </ResponsiveContainer>
             </Secao>
             <Secao titulo="Churn de receita (% do MRR cancelado no mês)">
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={mensal}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis unit="%" />
-                  <Tooltip formatter={(v) => `${v}%`} /><Bar dataKey="churn" name="Churn" fill="#ef4444" /></BarChart>
+                  <Tooltip formatter={(v) => `${v}%`} /><Bar dataKey="churn" name="Churn" fill="#fb7185" fillOpacity={0.6} radius={[4, 4, 0, 0]} /></BarChart>
               </ResponsiveContainer>
             </Secao>
           </div>
@@ -67,7 +67,7 @@ export function Financeiro() {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={f.previsao.map((p: Linha) => ({ mes: `${MESES[+p.mes.slice(5, 7) - 1]}/${p.mes.slice(2, 4)}`, valor: p.valor / 100 }))}>
                 <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis tickFormatter={eixo} />
-                <Tooltip formatter={(v) => reais(Number(v))} /><Bar dataKey="valor" name="Previsto" fill="#22c55e" />
+                <Tooltip formatter={(v) => reais(Number(v))} /><Bar dataKey="valor" name="Previsto" fill="#34d399" fillOpacity={0.45} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Secao>
