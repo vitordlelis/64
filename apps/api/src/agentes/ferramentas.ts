@@ -84,6 +84,7 @@ const F: Record<string, Def> = {
     rodar: async ({ sistema_id }) => {
       const [s] = await q('select url from sistema where id = $1', [sistema_id]);
       if (!s) throw new Error('sistema não cadastrado');
+      if (!s.url) return 'Este sistema ainda não tem endereço publicado cadastrado.';
       const t0 = performance.now();
       const r = await fetch(s.url, { signal: AbortSignal.timeout(15_000), headers: { 'user-agent': 'VL-Command-Agente/1.0' } });
       const html = (await r.text()).slice(0, 200_000);

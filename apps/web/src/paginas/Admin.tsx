@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, data, MESES, useAcao, useDados, type Linha } from '../api';
 import { Carregando, Secao, Vazio } from '../ui';
 import { Bell, FolderGit2 } from 'lucide-react';
@@ -84,6 +84,7 @@ export function Configuracoes() {
 }
 
 function ConexaoGithub() {
+  const nav = useNavigate();
   const g = useDados('/github');
   const [token, setToken] = useState('');
   const conectar = useAcao(() => api('/github', 'PUT', { token }));
@@ -96,6 +97,7 @@ function ConexaoGithub() {
           <FolderGit2 size={20} aria-hidden />
           <span>Conectado como <strong>{g.data.login}</strong>{g.data.nome && g.data.nome !== g.data.login ? ` (${g.data.nome})` : ''}.</span>
           <small>O VL Command verifica os repositórios ligados aos sistemas a cada 10 minutos.</small>
+          <Link to="/sistemas/importar" className="botao">Importar repositórios</Link>
           <button className="link perigo" onClick={async () => (await confirmar({ titulo: 'Desconectar o GitHub?', texto: 'O monitoramento dos repositórios para; os repositórios ligados aos sistemas continuam anotados.', acao: 'Desconectar', perigo: true })) && desconectar.mutate(undefined)}>desconectar</button>
         </div>
       ) : g.data && (
@@ -107,7 +109,7 @@ function ConexaoGithub() {
             <li>Em <strong>Repository permissions</strong>, marque: <em>Actions</em>: Read-only · <em>Contents</em>: Read-only · <em>Issues</em>: Read and write · <em>Pull requests</em>: Read-only. (<em>Metadata</em> já vem marcado.)</li>
             <li>Clique em <strong>Generate token</strong>, copie o código (começa com <code>github_pat_</code>) e cole abaixo.</li>
           </ol>
-          <form className="comando" onSubmit={(e: FormEvent) => { e.preventDefault(); conectar.mutate(undefined, { onSuccess: () => { setToken(''); avisar('GitHub conectado'); } }); }}>
+          <form className="comando" onSubmit={(e: FormEvent) => { e.preventDefault(); conectar.mutate(undefined, { onSuccess: () => { setToken(''); avisar('GitHub conectado. Agora escolha os repositórios.'); nav('/sistemas/importar'); } }); }}>
             <input type="password" autoComplete="off" aria-label="Token do GitHub" placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} />
             <button disabled={token.trim().length < 20 || conectar.isPending}>{conectar.isPending ? 'Conectando…' : 'Conectar'}</button>
           </form>

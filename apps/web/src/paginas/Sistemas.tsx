@@ -17,18 +17,19 @@ export function Sistemas() {
     <>
       <header className="titulo">
         <h1>Sistemas</h1>
-        {!!clientes.data?.length && <a href="#novo" className="botao"><Plus size={16} aria-hidden /> Novo sistema</a>}
+        <div className="acoes"><Link to="/sistemas/importar" className="botao"><FolderGit2 size={16} aria-hidden /> Importar do GitHub</Link>
+        {!!clientes.data?.length && <a href="#novo" className="botao secundario"><Plus size={16} aria-hidden /> Novo sistema</a>}</div>
       </header>
       <Secao titulo={`Lista${sistemas.data?.length ? ` · ${sistemas.data.length}` : ''}`}>
         <Carregando q={sistemas} />
         {sistemas.data && !sistemas.data.length && <Vazio icone={Server} titulo="Nenhum sistema monitorado"
-          texto={clientes.data?.length ? 'Cadastre um site ou app: o monitor passa a medir disponibilidade e tempo de resposta a cada minuto.' : 'Primeiro cadastre um cliente; os sistemas ficam ligados a ele.'}
-          acao={clientes.data?.length ? <a href="#novo" className="botao"><Plus size={16} aria-hidden /> Cadastrar sistema</a> : <Link to="/clientes" className="botao">Ir para Clientes</Link>} />}
+          texto="Importe os repositórios do GitHub de uma vez ou cadastre um sistema pelo endereço: o monitor passa a medir disponibilidade e tempo de resposta a cada minuto."
+          acao={<Link to="/sistemas/importar" className="botao"><FolderGit2 size={16} aria-hidden /> Importar do GitHub</Link>} />}
         {!!sistemas.data?.length && <table>
           <thead><tr><th>Status</th><th>Sistema</th><th>Cliente</th><th>Build</th><th>URL</th><th>SSL vence</th><th>Domínio vence</th></tr></thead>
           <tbody>{sistemas.data?.map((s) => (
             <tr key={s.id}><td><Status s={s.status_saude} /></td><td><Link to={`/sistemas/${s.id}`}>{s.nome}</Link></td>
-              <td><Link to={`/clientes/${s.cliente_id}`}>{nome(s.cliente_id)}</Link></td><td><CiPill s={s} /></td><td><a href={s.url} target="_blank" rel="noreferrer">{s.url}</a></td>
+              <td><Link to={`/clientes/${s.cliente_id}`}>{nome(s.cliente_id)}</Link></td><td><CiPill s={s} /></td><td>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.url}</a> : <span className="pill aguardando">sem endereço</span>}</td>
               <td>{data(s.ssl_expira_em)}</td><td>{data(s.dominio_expira_em)}</td></tr>
           ))}</tbody>
         </table>}
@@ -106,9 +107,9 @@ function Conexoes({ s }: { s: Linha }) {
   return (
     <Secao titulo="Conexões deste sistema">
       <ul className="conexoes">
-        <Item estado={site} titulo="1. Site no ar">
-          <p>{k.ultimo_check ? <>Última verificação {data(k.ultimo_check.checado_em)}: {k.ultimo_check.ok ? `respondeu em ${k.ultimo_check.latencia_ms} ms` : `falhou (${k.ultimo_check.erro})`}.</> : 'Ainda não verificado.'} Funciona para qualquer site, de qualquer plataforma: basta o endereço.</p>
-          <button className="secundario" disabled={checar.isPending} onClick={() => checar.mutate(undefined)}><RefreshCw size={14} aria-hidden /> Verificar agora</button>
+        <Item estado={k.url ? site : 'pendente'} titulo="1. Site no ar">
+          {!k.url ? <p>Este sistema ainda não tem endereço publicado. Informe a <strong>URL</strong> em “Dados”, abaixo, para medir se está no ar e a latência (ex.: <code>https://meusite.lovable.app</code>).</p> : <><p>{k.ultimo_check ? <>Última verificação {data(k.ultimo_check.checado_em)}: {k.ultimo_check.ok ? `respondeu em ${k.ultimo_check.latencia_ms} ms` : `falhou (${k.ultimo_check.erro})`}.</> : 'Ainda não verificado.'} Funciona para qualquer site, de qualquer plataforma: basta o endereço.</p>
+          <button className="secundario" disabled={checar.isPending} onClick={() => checar.mutate(undefined)}><RefreshCw size={14} aria-hidden /> Verificar agora</button></>}
         </Item>
         <Item estado={codigo} titulo="2. Código no GitHub">
           <p>{!k.github_conectado ? <>Conecte sua conta em <Link to="/configuracoes#github">Configurações → GitHub</Link> e depois escolha o repositório em “Dados”, abaixo.</>

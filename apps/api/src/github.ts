@@ -64,6 +64,14 @@ export async function statusRepo(repo: string, token: string) {
   };
 }
 
+// Endereço publicado que o próprio GitHub conhece: campo "Website" do repositório ou GitHub Pages.
+export async function detectarUrl(repo: string, token: string): Promise<string | null> {
+  const r = await gh(`/repos/${repo}`, token);
+  if (r.homepage && /^https?:\/\//.test(r.homepage)) return r.homepage;
+  const pages = await gh(`/repos/${repo}/pages`, token).catch(() => null); // 404 = sem Pages
+  return pages?.html_url ?? null;
+}
+
 // Atualiza o retrato do GitHub de um sistema (ou de todos) e avisa quando o build quebra ou volta.
 export async function sincronizarGithub(sistemaId?: string) {
   const token = await tokenGithub();

@@ -19,6 +19,8 @@ before(async () => {
       const u = req.url!;
       if (u === '/user') return r(200, { login: 'vitordlelis', name: 'Vitor', avatar_url: 'x' });
       if (u.startsWith('/user/repos')) return r(200, [{ full_name: 'vitordlelis/loja', private: true, homepage: 'https://loja.exemplo', description: 'Loja', pushed_at: '2026-11-01T10:00:00Z' }]);
+      if (u === '/repos/vitordlelis/comsite') return r(200, { html_url: 'x', private: false, default_branch: 'main', homepage: 'https://comsite.exemplo', pushed_at: 'x', open_issues_count: 0 });
+      if (u === '/repos/vitordlelis/semsite') return r(200, { html_url: 'x', private: false, default_branch: 'main', homepage: '', pushed_at: 'x', open_issues_count: 0 });
       if (u === '/repos/vitordlelis/loja') return r(200, { html_url: 'https://github.com/vitordlelis/loja', private: true, default_branch: 'main', homepage: 'https://loja.exemplo', pushed_at: '2026-11-01T10:00:00Z', open_issues_count: 3 });
       if (u.startsWith('/repos/vitordlelis/loja/commits')) return r(200, [{ sha: 'abcdef123456', html_url: 'u', commit: { message: 'Corrige checkout\n\ndetalhes', author: { name: 'Vitor', date: '2026-11-01T10:00:00Z' } } }]);
       if (u.startsWith('/repos/vitordlelis/loja/actions/runs')) return r(200, { workflow_runs: [{ name: 'CI', status: 'completed', conclusion: ci, html_url: `run-${ci}`, created_at: 'x', head_sha: 'abcdef1234' }] });
@@ -100,4 +102,19 @@ test('agente propõe issue; só é criada no GitHub depois da aprovação', asyn
   assert.equal((await q('select resultado from tarefa where id = $1', [t.id]))[0].resultado.issue, 42);
   // designer recebe a ferramenta; marketing não
   await assert.rejects(ferramentasDe({ agenteId: rafael.id, funcao: 'marketing', nome: 'M' }).executar('propor_issue', {}), /não permitida/);
+});
+
+test('importar em lote: detecta o endereço, aceita sem endereço, não duplica e cria o cliente interno', async () => {
+  const r = await req('POST', '/api/github/importar', { itens: [{ repo: 'vitordlelis/comsite' }, { repo: 'vitordlelis/semsite', url: '' }, { repo: 'vitordlelis/loja' }] });
+  assert.deepEqual(r.body, { importados: 2, sem_endereco: 1 });
+  const s = await q("select s.nome, s.url, c.nome as cliente from sistema s join cliente c on c.id = s.cliente_id where s.github_repo in ('vitordlelis/comsite', 'vitordlelis/semsite') order by s.nome");
+  assert.deepEqual(s.map((x) => [x.nome, x.url, x.cliente]), [['comsite', 'https://comsite.exemplo', 'VL Systems (meus sistemas)'], ['semsite', null, 'VL Systems (meus sistemas)']]);
+  assert.equal((await req('POST', '/api/github/importar', { itens: [{ repo: 'vitordlelis/loja' }] })).body.importados, 0);
+  assert.equal((await req('POST', '/api/github/importar', { itens: [{ repo: 'vitordlelis/x', url: 'ftp://x' }] })).status, 400);
+  // sistema sem endereço não entra no monitor (nem quebra o ciclo)
+  const { rodarUptime } = await import('../src/jobs/uptime.ts');
+  await rodarUptime();
+  const [sem] = await q("select id from sistema where nome = 'semsite'");
+  assert.equal((await q('select count(*)::int as n from check_saude where sistema_id = $1', [sem.id]))[0].n, 0);
+  assert.equal((await req('GET', `/api/sistemas/${sem.id}/conexoes`)).body.url, null);
 });

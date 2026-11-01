@@ -62,7 +62,7 @@ export async function processarSistema(s: Sis & { url: string; latencia_limite_m
 
 const SISTEMAS = `select s.id, s.nome, c.nome as cliente, coalesce(s.health_url, s.url) as url, s.url as url_principal,
   s.latencia_limite_ms, s.ssl_expira_em, s.dominio_expira_em
-  from sistema s join cliente c on c.id = s.cliente_id where c.status = 'ativo'`;
+  from sistema s join cliente c on c.id = s.cliente_id where c.status = 'ativo' and s.url is not null`;
 
 // Checagem imediata de um sistema (ao cadastrar ou pelo botão "Verificar agora").
 export async function checarAgora(id: string) {

@@ -203,7 +203,7 @@ export function Inicio() {
         <small>{sistemas.length ? `${sistemas.filter((s) => s.status_saude === 'verde').length}/${sistemas.length} sistemas no ar · ${abertos} incidente(s) aberto(s)` : ''}</small>
       </header>
       {!sistemas.length && saude.data && (
-        <p className="aviso-demo" style={{ marginBottom: '1rem' }}>Nenhum sistema cadastrado ainda. <Link to="/clientes">Cadastre um cliente</Link> e depois os sistemas dele para ver os números aqui.</p>
+        <p className="aviso-demo" style={{ marginBottom: '1rem' }}>Nenhum sistema monitorado ainda. <Link to="/sistemas/importar">Importe seus repositórios do GitHub</Link> (ou cadastre pelo endereço em <Link to="/sistemas">Sistemas</Link>) para ver latência, atividade e builds aqui.</p>
       )}
       <div className="bento">
         <Latencia serie={serie.data ?? []} sistemas={sistemas} />

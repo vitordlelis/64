@@ -17,6 +17,7 @@ import { Seguranca } from './paginas/Seguranca';
 import { Agentes } from './paginas/Agentes';
 const Escritorio = lazy(() => import('./paginas/Escritorio')); // three.js só carrega nesta tela
 const Stack = lazy(() => import('./paginas/Stack'));
+const ImportarGithub = lazy(() => import('./paginas/ImportarGithub'));
 import { Feedback } from './feedback';
 import './index.css';
 
@@ -44,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="clientes" element={<Clientes />} />
             <Route path="clientes/:id" element={<Cliente />} />
             <Route path="sistemas" element={<Sistemas />} />
+            <Route path="sistemas/importar" element={<Suspense fallback={null}><ImportarGithub /></Suspense>} />
             <Route path="sistemas/:id" element={<Sistema />} />
             <Route path="saude" element={<Saude />} />
             <Route path="aprovacoes" element={<Aprovacoes />} />

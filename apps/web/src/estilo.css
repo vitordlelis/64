@@ -338,3 +338,10 @@ form.importar select { flex: 1; min-width: 0; }
 .conexao-estado { margin-left: .35rem; }
 .conexao.ok .conexao-estado { color: #6ee7b7; } .conexao.erro .conexao-estado { color: #fda4af; }
 .conexao details { width: 100%; }
+
+.importar-tabela input[type=url], .importar-tabela select { width: 100%; min-width: 180px; }
+.importar-tabela tr.marcado { background: rgba(129, 140, 248, .07); }
+.importar-tabela input[type=checkbox] { width: 1.1rem; height: 1.1rem; accent-color: #818cf8; }
+.barra-acao { position: sticky; bottom: 1rem; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding: .8rem 1rem; margin: 0 0 1rem; border-radius: 16px; border: 1px solid rgba(129, 140, 248, .35); background: rgba(13, 16, 24, .92); backdrop-filter: blur(12px); }
+a.botao.secundario { background: rgba(255, 255, 255, .06); border: 1px solid var(--borda-forte); }

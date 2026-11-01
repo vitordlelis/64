@@ -23,10 +23,10 @@ const ENTIDADES = {
     },
   },
   sistemas: {
-    tabela: 'sistema', obrigatorios: ['cliente_id', 'nome', 'url'],
+    tabela: 'sistema', obrigatorios: ['cliente_id', 'nome'],
     campos: {
       cliente_id: uuid, nome: { type: 'string', minLength: 1, maxLength: 200 },
-      url: { type: 'string', pattern: '^https?://', maxLength: 500 },
+      url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 },
       health_url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 }, waf_zona_id: txt, pentest_autorizado: { type: 'boolean' },
       github_repo: { type: ['string', 'null'], pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$', maxLength: 200 },
       hospedagem: txt, dominio: txt, dominio_expira_em: data, ssl_expira_em: data,
@@ -72,7 +72,7 @@ export function crud(app: FastifyInstance) {
       const ks = Object.keys(req.body);
       const [r] = await q(`insert into ${tabela} (${ks.join(',')}) values (${ks.map((_, i) => `$${i + 1}`).join(',')}) returning *`, Object.values(req.body));
       verificarRepo(tabela, r);
-      if (tabela === 'sistema') void checarAgora(r.id).catch(() => {}); // primeira medição já, sem esperar 1 min
+      if (tabela === 'sistema' && r.url) void checarAgora(r.id).catch(() => {}); // primeira medição já, sem esperar 1 min
       return rep.code(201).send(r);
     });
 

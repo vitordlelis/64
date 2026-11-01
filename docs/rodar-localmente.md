@@ -50,8 +50,9 @@ Cada agente tem teto de US$ 1 por dia (ajustável). Sem a chave, os agentes fica
 
 ## Conectar o GitHub (seus sistemas reais)
 Em **Configurações → GitHub**, siga o passo a passo para gerar um *fine-grained token* e cole no campo.
-Depois, na ficha de cada cliente, use **Importar um repositório do GitHub**: o sistema é criado, o endereço publicado
-passa a ser monitorado (no ar, tempo de resposta, SSL) e o repositório é verificado a cada 10 minutos
+Ao conectar, abre a tela **Importar do GitHub**: marque os repositórios, informe o endereço publicado de cada um
+(opcional; o VL Command preenche sozinho quando o GitHub sabe) e escolha o cliente (padrão: "VL Systems (meus sistemas)").
+O endereço passa a ser monitorado (no ar, tempo de resposta, SSL) e o repositório é verificado a cada 10 minutos
 (build/testes do GitHub Actions, commits, PRs, issues e última versão). Se o build quebrar, chega um alerta.
 
 ## Conexões de cada sistema

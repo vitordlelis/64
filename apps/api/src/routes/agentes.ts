@@ -52,12 +52,14 @@ export function agentes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>('/api/sistemas/:id/verificacao', { schema: { params: uuid } }, async (req, rep) => {
     const [s] = await q(`update sistema set token_verificacao = coalesce(token_verificacao, $2) where id = $1 returning url, token_verificacao`, [req.params.id, randomBytes(12).toString('hex')]);
     if (!s) return rep.code(404).send({ erro: 'sistema não encontrado' });
+    if (!s.url) return rep.code(409).send({ erro: 'Informe o endereço publicado do sistema primeiro.' });
     return { host: new URL(s.url).hostname, registro: `vl-command-verificacao=${s.token_verificacao}` };
   });
 
   app.post<{ Params: { id: string } }>('/api/sistemas/:id/verificar', { schema: { params: uuid } }, async (req, rep) => {
     const [s] = await q('select url, token_verificacao from sistema where id = $1', [req.params.id]);
-    if (!s?.token_verificacao) return rep.code(409).send({ erro: 'Gere o registro de verificação primeiro.' });
+    if (!s?.url) return rep.code(409).send({ erro: 'Informe o endereço publicado do sistema primeiro.' });
+    if (!s.token_verificacao) return rep.code(409).send({ erro: 'Gere o registro de verificação primeiro.' });
     if (!(await dominioVerificado(new URL(s.url).hostname, s.token_verificacao))) return rep.code(422).send({ erro: 'Registro TXT não encontrado (a propagação do DNS pode levar alguns minutos).' });
     return (await q('update sistema set dominio_verificado_em = now() where id = $1 returning dominio_verificado_em', [req.params.id]))[0];
   });

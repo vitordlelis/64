@@ -14,7 +14,7 @@ export const CAMPOS_CLIENTE: Campo[] = [
 export const camposSistema = (clientes?: Linha[], repos?: Linha[]): Campo[] => [
   ...(clientes ? [{ nome: 'cliente_id', rotulo: 'Cliente', tipo: 'select', obrigatorio: true, opcoes: clientes.map((c) => [c.id, c.nome]) } as Campo] : []),
   { nome: 'nome', rotulo: 'Nome', obrigatorio: true },
-  { nome: 'url', rotulo: 'URL', tipo: 'url', obrigatorio: true },
+  { nome: 'url', rotulo: 'Endereço publicado (URL)', tipo: 'url' },
   repos ? { nome: 'github_repo', rotulo: 'Repositório no GitHub', tipo: 'select', opcoes: repos.map((r) => [r.nome, `${r.nome}${r.privado ? ' (privado)' : ''}`]) }
     : { nome: 'github_repo', rotulo: 'Repositório no GitHub (dono/nome)' },
   { nome: 'health_url', rotulo: 'URL de health check (opcional)', tipo: 'url' },

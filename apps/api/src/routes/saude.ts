@@ -22,7 +22,7 @@ export function saude(app: FastifyInstance) {
 
   // As 3 ligações de um sistema com o VL Command: site no ar, código no GitHub e eventos de segurança.
   app.get<{ Params: { id: string } }>('/api/sistemas/:id/conexoes', async (req, rep) => {
-    const [c] = await q(`select s.github_repo, s.github_atualizado_em, s.github_status->>'erro' as github_erro,
+    const [c] = await q(`select s.url, s.github_repo, s.github_atualizado_em, s.github_status->>'erro' as github_erro,
         s.chave_ingestao_hash is not null as chave_gerada,
         exists (select 1 from integracao where nome = 'github') as github_conectado,
         (select row_to_json(k) from (select ok, checado_em, erro, latencia_ms, http_status from check_saude

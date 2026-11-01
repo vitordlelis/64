@@ -30,7 +30,7 @@ export function externos(app: FastifyInstance) {
       const h = req.headers.authorization?.replace(/^Bearer /, '');
       if (!t || !h || !iguais(h, t)) return rep.code(401).send({ erro: 'token inválido' });
     });
-    sonda.get('/api/sonda/alvos', () => q("select s.id, coalesce(s.health_url, s.url) as url from sistema s join cliente c on c.id = s.cliente_id where c.status = 'ativo'"));
+    sonda.get('/api/sonda/alvos', () => q("select s.id, coalesce(s.health_url, s.url) as url from sistema s join cliente c on c.id = s.cliente_id where c.status = 'ativo' and s.url is not null"));
     sonda.post<{ Body: { sistema_id: string; ok: boolean; http_status: number | null; latencia_ms: number | null; erro: string | null }[] }>('/api/sonda/resultados', {
       schema: { body: { type: 'array', maxItems: 1000, items: { type: 'object', required: ['sistema_id', 'ok'], properties: {
         sistema_id: { type: 'string', format: 'uuid' }, ok: { type: 'boolean' }, http_status: { type: ['integer', 'null'] },
