@@ -319,6 +319,15 @@ html { scroll-behavior: smooth; }
 .kpis.mini { display: flex; gap: 1.25rem; flex-wrap: wrap; margin: .5rem 0 .75rem; }
 .kpis.mini div { display: flex; align-items: center; gap: .4rem; color: var(--suave); }
 .kpis.mini strong { color: #fff; }
+/* Tráfego: listas com barra (páginas, origens, aparelhos) */
+.tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem 1.5rem; margin: 1rem 0; }
+.top strong { display: block; font-size: .8rem; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .4rem; }
+.top ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.top li { display: grid; grid-template-columns: minmax(0, 1fr) 70px auto; align-items: center; gap: .5rem; font-size: .85rem; }
+.top-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-barra { height: 6px; border-radius: 3px; background: var(--borda); overflow: hidden; }
+.top-barra span { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primaria-forte), var(--ciano)); }
+.top small { color: var(--fraco); font-variant-numeric: tabular-nums; }
 .linha a { display: inline-flex; align-items: center; gap: .35rem; }
 button.secundario { display: inline-flex; align-items: center; gap: .4rem; }
 .girando-svg { animation: girar 1.1s linear infinite; }

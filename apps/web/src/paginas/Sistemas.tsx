@@ -6,6 +6,7 @@ import { camposSistema } from '../campos';
 import { Carregando, Formulario, Kpi, Secao, Status, Vazio } from '../ui';
 import { CircleCheck, CircleDashed, CircleX, ExternalLink, FolderGit2, GitCommitHorizontal, GitPullRequest, CircleDot, Plus, RefreshCw, Server, Tag } from 'lucide-react';
 import { avisar, confirmar } from '../feedback';
+import { PainelTrafego } from './Trafego';
 
 export function Sistemas() {
   const sistemas = useDados<Linha[]>('/sistemas');
@@ -45,6 +46,7 @@ export function Sistema() {
   const saude = useDados(`/sistemas/${id}/saude`, { refetchInterval: 30_000 });
   const salvar = useAcao((v: Linha) => api(`/sistemas/${id}`, 'PATCH', v), false);
   const repos = useRepos();
+  const extras = useExtras();
   if (!sistema.data) return <Carregando q={sistema} />;
   const s = sistema.data, h = saude.data;
   const up = (v: number | null) => (v == null ? '—' : `${v}%`);
@@ -57,6 +59,7 @@ export function Sistema() {
         </div>
       )}
       <Conexoes s={s} />
+      <PainelTrafego s={s} />
       <Secao titulo="Tempo de resposta (24h)">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={h?.checks.filter((c: Linha) => c.origem === 'principal').map((c: Linha) => ({ hora: new Date(c.checado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), ms: c.latencia_ms }))}>
@@ -74,7 +77,7 @@ export function Sistema() {
         </Secao>
         <PainelGithub s={s} />
         <PenTest s={s} />
-        <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema(undefined, repos.data)} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
+        <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema(undefined, repos.data, extras)} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
       </div>
     </>
   );
@@ -92,6 +95,14 @@ function Conexoes({ s }: { s: Linha }) {
   const site = k.ultimo_check ? (k.ultimo_check.ok ? 'ok' : 'erro') : 'pendente';
   const codigo = !s.github_repo ? 'pendente' : k.github_erro ? 'erro' : k.github_atualizado_em ? 'ok' : 'pendente';
   const eventos = k.ultimo_evento ? 'ok' : 'pendente';
+  const nuvem = !k.cloudflare_conectado || !k.cf_projeto ? 'pendente' : k.cloudflare_erro ? 'erro' : 'ok';
+  const analytics = !k.google_conectado || !k.ga_propriedade ? 'pendente' : k.ga_erro ? 'erro' : 'ok';
+  const pedidoGa = `Instale o Google Analytics 4 neste site e registre os eventos de conversão:
+- Adicione a tag do Google (gtag.js) com o ID de medição ${k.ga_medicao ?? 'G-XXXXXXXXXX (copie em Google Analytics → Administrador → Fluxos de dados)'} no <head> de todas as páginas.
+- Se o site for SPA (React, Vite, Next), envie page_view a cada troca de rota.
+- Envie estes eventos com gtag('event', ...): generate_lead ao enviar qualquer formulário de contato; click_whatsapp ao clicar em links/botões do WhatsApp (parâmetro local: onde fica o botão); click_telefone em links tel:; e, se houver loja, view_item, add_to_cart, begin_checkout e purchase (com value e currency BRL).
+- Mostre um aviso simples de cookies (LGPD) e use o Consent Mode do Google: só ative analytics_storage depois do aceite.
+- Não envie dados pessoais (nome, e-mail, telefone) em nenhum evento.`;
   const pedido = `Adicione monitoramento de segurança a este projeto, enviando eventos para o VL Command:
 - Quando um login falhar, quando o servidor responder com erro 4xx (exceto 401) ou 5xx, envie um POST para ${location.origin}/api/ingest/eventos
 - Cabeçalhos: content-type: application/json e x-vlc-chave: ${chave || 'COLE_A_CHAVE_AQUI'}
@@ -117,9 +128,25 @@ function Conexoes({ s }: { s: Linha }) {
             : k.github_erro ? k.github_erro : `Acompanhando ${s.github_repo}: build, commits, PRs e issues.`}</p>
           <p><small>Feito no Lovable, Bolt, v0, Cursor ou Vercel? Essas plataformas sincronizam com o GitHub: ative a sincronização lá e o repositório aparece aqui.</small></p>
         </Item>
-        <Item estado={eventos} titulo="3. Eventos de segurança (opcional)">
+        <Item estado={nuvem} titulo="3. Cloudflare Pages: deploys e visitas">
+          <p>{!k.cloudflare_conectado ? <>Se o site está no Cloudflare Pages, conecte em <Link to="/configuracoes#cloudflare">Configurações → Cloudflare</Link>: este sistema é ligado sozinho pelo repositório ou endereço.</>
+            : !k.cf_projeto ? 'Nenhum projeto do Pages ligado. Escolha em “Projeto no Cloudflare Pages”, em Dados, abaixo (ou ignore se o site não está no Cloudflare).'
+            : k.cloudflare_erro ? k.cloudflare_erro
+            : `Acompanhando o projeto ${k.cf_projeto}: deploys${k.cf_analytics ? ' e visitas' : ''}.`}</p>
+          {k.cf_projeto && k.trafego_atualizado_em && !k.cf_analytics && <p><small>Para ver visitas sem cookies e de graça: no Cloudflare, abra Workers & Pages → {k.cf_projeto} → Metrics → <strong>Web Analytics → Enable</strong> e faça um novo deploy.</small></p>}
+        </Item>
+        <Item estado={analytics} titulo="4. Google Analytics">
+          <p>{!k.google_conectado ? <>Conecte em <Link to="/configuracoes#google">Configurações → Google Analytics</Link> para ver usuários, origens e conversões aqui.</>
+            : !k.ga_propriedade ? 'Nenhuma propriedade ligada. Escolha em “Propriedade no Google Analytics”, em Dados, abaixo, ou instale o GA no site com o pedido abaixo.'
+            : k.ga_erro ? k.ga_erro : `Lendo a propriedade ${k.ga_propriedade}${k.ga_medicao ? ` (${k.ga_medicao})` : ''}.`}</p>
+          <details><summary>Pedido para o construtor do site: instalar o GA com eventos de conversão</summary>
+            <textarea readOnly rows={8} value={pedidoGa} onFocus={(e) => e.currentTarget.select()} aria-label="Pedido para instalar o Google Analytics" style={{ width: '100%' }} />
+            <button onClick={() => navigator.clipboard.writeText(pedidoGa).then(() => avisar('Pedido copiado'), () => avisar('Selecione o texto e copie com Ctrl+C', 'info'))}>Copiar pedido</button>
+          </details>
+        </Item>
+        <Item estado={eventos} titulo="5. Eventos de segurança (opcional)">
           <p>{k.ultimo_evento ? `Último evento recebido ${data(k.ultimo_evento)}.` : 'O próprio site avisa o VL Command sobre logins falhos e erros, para o SOC detectar ataques. Exige uma pequena alteração no código do site.'}</p>
-          {local && <p className="aviso-demo"><small>Este item só funciona quando o VL Command estiver na internet: hoje ele roda no seu computador ({location.host}), que os sites publicados não conseguem acessar. Os itens 1 e 2 funcionam normalmente.</small></p>}
+          {local && <p className="aviso-demo"><small>Este item só funciona quando o VL Command estiver na internet: hoje ele roda no seu computador ({location.host}), que os sites publicados não conseguem acessar. Os outros itens funcionam normalmente.</small></p>}
           {!chave ? (
             <button className="secundario" onClick={async () => (!k.chave_gerada || await confirmar({ titulo: 'Gerar uma chave nova?', texto: 'A chave anterior deste sistema deixa de funcionar.', acao: 'Gerar', perigo: true })) && gerar.mutate(undefined)}>
               Gerar pedido para o construtor do site</button>
@@ -171,6 +198,13 @@ function PenTest({ s }: { s: Linha }) {
     </Secao>
   );
 }
+
+// Projetos do Cloudflare Pages e propriedades do GA4 para os campos de Dados (undefined se não conectados).
+const useExtras = () => {
+  const cf = useDados<Linha[]>('/cloudflare/projetos', { staleTime: 300_000, retry: false });
+  const ga = useDados('/google', { staleTime: 300_000 });
+  return { projetos: cf.data, propriedades: ga.data?.conectado ? ga.data.propriedades as Linha[] : undefined };
+};
 
 // Repositórios da conta conectada (undefined se o GitHub não estiver conectado).
 export const useRepos = () => useDados<Linha[]>('/github/repos', { staleTime: 300_000 });

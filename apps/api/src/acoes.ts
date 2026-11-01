@@ -4,6 +4,7 @@ import { q } from './db.ts';
 import { parametrosEmOrdem, type Vars } from './mensagens.ts';
 import { pentestPassivo } from './pentest.ts';
 import { gh, tokenGithub } from './github.ts';
+import { cf, tokenCloudflare } from './cloudflare.ts';
 
 const demo = () => process.env.MODO_DEMONSTRACAO === '1';
 type Payload = Record<string, unknown>;
@@ -68,12 +69,7 @@ async function enviarWhatsapp(destino: string, template: string | null, parametr
 }
 
 async function cloudflare(caminho: string, method: string, body?: object) {
-  const r = await fetch(`https://api.cloudflare.com/client/v4${caminho}`, {
-    method, headers: { authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`, 'content-type': 'application/json' }, body: body && JSON.stringify(body),
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.success) throw new Error(`Cloudflare ${r.status}: ${JSON.stringify(j.errors ?? '')}`);
-  return j.result;
+  return cf(caminho, (await tokenCloudflare())!, { method, body: body && JSON.stringify(body) });
 }
 
 // ---------- execução ----------
@@ -109,7 +105,7 @@ export async function executar(t: Tarefa): Promise<object> {
     if (!s) throw new Error('sistema inexistente');
     let regra: string | null = null;
     if (!demo()) {
-      if (!process.env.CLOUDFLARE_API_TOKEN || !s.waf_zona_id) throw new Error(`Cloudflare não configurado para ${s.nome} (CLOUDFLARE_API_TOKEN e zona do sistema)`);
+      if (!(await tokenCloudflare()) || !s.waf_zona_id) throw new Error(`Cloudflare não configurado para ${s.nome} (conecte o Cloudflare em Configurações e informe a zona do sistema)`);
       regra = (await cloudflare(`/zones/${s.waf_zona_id}/firewall/access_rules/rules`, 'POST', {
         mode: 'block', configuration: { target: isIP(p.ip as string) === 6 ? 'ip6' : 'ip', value: p.ip }, notes: `VL Command — tarefa ${t.id}`,
       })).id;

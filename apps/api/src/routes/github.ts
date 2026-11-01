@@ -3,7 +3,7 @@ import { q } from '../db.ts';
 import { conectarGithub, detectarUrl, ErroGithub, gh, sincronizarGithub, tokenGithub } from '../github.ts';
 import { checarAgora } from '../jobs/uptime.ts';
 
-const CLIENTE_INTERNO = 'VL Systems (meus sistemas)';
+export const CLIENTE_INTERNO = 'VL Systems (meus sistemas)';
 
 const uuid = { type: 'object', properties: { id: { type: 'string', format: 'uuid' } } };
 

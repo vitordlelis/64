@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, data, MESES, useAcao, useDados, type Linha } from '../api';
 import { Carregando, Secao, Vazio } from '../ui';
-import { Bell, FolderGit2 } from 'lucide-react';
+import { Bell, ChartColumn, Cloud, FolderGit2 } from 'lucide-react';
 import { avisar, confirmar } from '../feedback';
 
 export function Notificacoes() {
@@ -74,6 +74,8 @@ export function Configuracoes() {
         )}
       </Secao>
       <ConexaoGithub />
+      <ConexaoCloudflare />
+      <ConexaoGoogle />
       <Secao titulo="Conta e 2FA">
         <p>O sistema tem um único administrador. Para trocar senha ou o autenticador (2FA), rode no servidor:</p>
         <pre>docker compose exec app node apps/api/src/cli/criar-admin.ts seu@email.com</pre>
@@ -114,6 +116,100 @@ function ConexaoGithub() {
             <button disabled={token.trim().length < 20 || conectar.isPending}>{conectar.isPending ? 'Conectando…' : 'Conectar'}</button>
           </form>
           <p><small>O código fica guardado criptografado no seu computador e nunca é mostrado de novo.</small></p>
+        </>
+      )}
+    </Secao>
+  );
+}
+
+function ConexaoCloudflare() {
+  const c = useDados('/cloudflare');
+  const projetos = useDados<Linha[]>('/cloudflare/projetos', { enabled: !!c.data?.conectado, retry: false });
+  const [token, setToken] = useState('');
+  const conectar = useAcao(() => api('/cloudflare', 'PUT', { token }));
+  const importar = useAcao(async () => { const r = await api<Linha>('/cloudflare/importar', 'POST'); avisar(r.importados ? `${r.importados} site(s) adicionados a Sistemas` : 'Todos os projetos já estão ligados a um sistema'); });
+  const desconectar = useAcao(() => api('/cloudflare', 'DELETE'));
+  const soltos = projetos.data?.filter((p) => !p.sistema).length ?? 0;
+  return (
+    <Secao titulo="Cloudflare Pages" id="cloudflare" acoes={c.data?.conectado && <span className="pill paga">conectado</span>}>
+      <Carregando q={c} />
+      {c.data?.conectado ? (
+        <>
+          <div className="linha">
+            <Cloud size={20} aria-hidden />
+            <span>Conta <strong>{c.data.conta_nome}</strong>. Deploys e visitas (Web Analytics) são lidos a cada 30 minutos.</span>
+            <Link to="/trafego" className="botao">Ver tráfego</Link>
+            <button className="link perigo" onClick={async () => (await confirmar({ titulo: 'Desconectar o Cloudflare?', texto: 'Deploys e visitas param de ser lidos.', acao: 'Desconectar', perigo: true })) && desconectar.mutate(undefined)}>desconectar</button>
+          </div>
+          {projetos.error && <p className="erro">{projetos.error.message}</p>}
+          {!!projetos.data?.length && (
+            <table><thead><tr><th>Projeto</th><th>Endereço</th><th>Sistema no VL Command</th></tr></thead>
+              <tbody>{projetos.data.map((p) => (
+                <tr key={p.nome}><td>{p.nome}</td><td><a href={`https://${p.dominios.find((d: string) => !d.endsWith('.pages.dev')) ?? p.subdominio}`} target="_blank" rel="noreferrer">{p.dominios.find((d: string) => !d.endsWith('.pages.dev')) ?? p.subdominio}</a></td>
+                  <td>{p.sistema ? <Link to={`/sistemas/${p.sistema.id}`}>{p.sistema.nome}</Link> : <span className="pill aguardando">não ligado</span>}</td></tr>
+              ))}</tbody></table>
+          )}
+          {soltos > 0 && <p><button disabled={importar.isPending} onClick={() => importar.mutate(undefined)}>{importar.isPending ? 'Adicionando…' : `Adicionar ${soltos} site(s) que faltam em Sistemas`}</button></p>}
+          <p><small>Para ver visitas: em cada projeto no Cloudflare, abra Metrics → <strong>Web Analytics → Enable</strong> (grátis, sem cookies) e faça um novo deploy.</small></p>
+        </>
+      ) : c.data && (
+        <>
+          <p>Conecte para ver, de cada site no Cloudflare Pages: se o último deploy foi publicado ou falhou (com aviso), o histórico de publicações e as visitas por dia, páginas, países e origens. Os sites são ligados sozinhos aos sistemas pelo repositório ou endereço.</p>
+          <ol className="passos">
+            <li>No Cloudflare, abra <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer">Meu perfil → API Tokens</a> e clique em <strong>Create Token</strong> → <strong>Create Custom Token</strong> (no fim da página).</li>
+            <li>Dê um nome (ex.: <em>VL Command</em>). Em <strong>Permissions</strong>, adicione: <em>Account · Cloudflare Pages · Read</em> e <em>Account · Account Analytics · Read</em>.</li>
+            <li>Opcional, para os agentes poderem propor bloqueio de IP (sempre com sua aprovação): <em>Zone · Firewall Services · Edit</em>.</li>
+            <li>Clique em <strong>Continue to summary</strong> → <strong>Create Token</strong>, copie o código e cole abaixo.</li>
+          </ol>
+          <form className="comando" onSubmit={(e: FormEvent) => { e.preventDefault(); conectar.mutate(undefined, { onSuccess: () => { setToken(''); avisar('Cloudflare conectado. Os sites aparecem em Tráfego em instantes.'); } }); }}>
+            <input type="password" autoComplete="off" aria-label="Token do Cloudflare" placeholder="Token da API do Cloudflare" value={token} onChange={(e) => setToken(e.target.value)} />
+            <button disabled={token.trim().length < 30 || conectar.isPending}>{conectar.isPending ? 'Conectando…' : 'Conectar'}</button>
+          </form>
+          <p><small>O token só lê (e nunca apaga nada); fica guardado criptografado no seu computador.</small></p>
+        </>
+      )}
+    </Secao>
+  );
+}
+
+function ConexaoGoogle() {
+  const g = useDados('/google');
+  const [chave, setChave] = useState('');
+  const conectar = useAcao(() => api('/google', 'PUT', { chave }));
+  const desconectar = useAcao(() => api('/google', 'DELETE'));
+  const lerArquivo = async (f?: File) => f && setChave(await f.text());
+  return (
+    <Secao titulo="Google Analytics" id="google" acoes={g.data?.conectado && <span className="pill paga">conectado</span>}>
+      <Carregando q={g} />
+      {g.data?.conectado ? (
+        <>
+          <div className="linha">
+            <ChartColumn size={20} aria-hidden />
+            <span>Lendo como <code>{g.data.email}</code>.</span>
+            <Link to="/trafego" className="botao">Ver tráfego</Link>
+            <button className="link perigo" onClick={async () => (await confirmar({ titulo: 'Desconectar o Google Analytics?', texto: 'As métricas do GA param de ser lidas.', acao: 'Desconectar', perigo: true })) && desconectar.mutate(undefined)}>desconectar</button>
+          </div>
+          {!g.data.propriedades?.length ? <p className="aviso-demo"><small>Nenhuma propriedade visível. No Google Analytics, em <strong>Administrador → Gerenciamento de acesso à propriedade</strong>, adicione <code>{g.data.email}</code> como <strong>Leitor</strong> e conecte de novo (cole a mesma chave).</small></p> : (
+            <table><thead><tr><th>Propriedade</th><th>Site</th><th>ID de medição</th></tr></thead>
+              <tbody>{g.data.propriedades.map((p: Linha) => <tr key={p.id}><td>{p.nome} <small>({p.id})</small></td><td>{p.hosts?.join(', ') || '—'}</td><td><code>{p.medicao ?? '—'}</code></td></tr>)}</tbody></table>
+          )}
+          <p><small>Adicionou o acesso a outra propriedade? Conecte de novo com a mesma chave para atualizar a lista.</small></p>
+        </>
+      ) : g.data && (
+        <>
+          <p>Conecte para ver, de cada site: usuários, sessões, engajamento, conversões, de onde vêm as visitas, páginas mais vistas e quem está no site agora — junto com o monitoramento e o financeiro. Os agentes também usam esses números para sugerir melhorias.</p>
+          <ol className="passos">
+            <li>Abra o <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noreferrer">Google Cloud</a> e crie um projeto (ex.: <em>vl-command</em>). É grátis.</li>
+            <li>Ative as APIs <a href="https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com" target="_blank" rel="noreferrer">Google Analytics Data API</a> e <a href="https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com" target="_blank" rel="noreferrer">Google Analytics Admin API</a> (botão <strong>Ativar</strong>).</li>
+            <li>Em <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noreferrer">IAM → Contas de serviço</a>, crie uma conta (ex.: <em>vl-command</em>, sem papéis). Abra-a → <strong>Chaves → Adicionar chave → JSON</strong>: um arquivo é baixado.</li>
+            <li>No <a href="https://analytics.google.com/" target="_blank" rel="noreferrer">Google Analytics</a>, em <strong>Administrador → Gerenciamento de acesso à conta</strong>, adicione o e-mail da conta de serviço (termina em <code>iam.gserviceaccount.com</code>) como <strong>Leitor</strong>.</li>
+            <li>Escolha o arquivo JSON abaixo e clique em Conectar.</li>
+          </ol>
+          <form className="comando" onSubmit={(e: FormEvent) => { e.preventDefault(); conectar.mutate(undefined, { onSuccess: () => { setChave(''); avisar('Google Analytics conectado.'); } }); }}>
+            <input type="file" accept=".json,application/json" aria-label="Arquivo JSON da chave" onChange={(e) => lerArquivo(e.target.files?.[0])} />
+            <button disabled={chave.length < 100 || conectar.isPending}>{conectar.isPending ? 'Conectando…' : 'Conectar'}</button>
+          </form>
+          <p><small>Só leitura. A chave fica guardada criptografada no seu computador; depois de conectar, apague o arquivo baixado.</small></p>
         </>
       )}
     </Secao>

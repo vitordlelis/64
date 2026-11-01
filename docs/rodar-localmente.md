@@ -56,11 +56,19 @@ O endereço passa a ser monitorado (no ar, tempo de resposta, SSL) e o repositó
 (build/testes do GitHub Actions, commits, PRs, issues e última versão). Se o build quebrar, chega um alerta.
 
 ## Conexões de cada sistema
-Na página de cada sistema, o quadro **Conexões deste sistema** mostra as 3 ligações e o que falta:
+Na página de cada sistema, o quadro **Conexões deste sistema** mostra as ligações e o que falta:
 1. **Site no ar** — só o endereço; funciona para qualquer plataforma. Botão "Verificar agora".
 2. **Código no GitHub** — Lovable, Bolt, v0, Cursor e Vercel sincronizam com o GitHub; ligue o repositório e pronto.
-3. **Eventos de segurança** (opcional) — o botão gera um pedido pronto para colar no construtor do site.
+3. **Cloudflare Pages** — deploys e visitas (ligado sozinho pelo repositório ou endereço).
+4. **Google Analytics** — usuários, origens e conversões; tem um pedido pronto para o construtor instalar o GA4 com eventos.
+5. **Eventos de segurança** (opcional) — o botão gera um pedido pronto para colar no construtor do site.
    Só funciona com o VL Command na internet (os sites publicados não alcançam o seu computador).
+
+## Cloudflare Pages e Google Analytics (tráfego)
+Funcionam com o VL Command no seu computador: ele é quem busca os dados (nada precisa chegar até ele).
+- **Cloudflare**: Configurações → Cloudflare Pages → siga os 4 passos (token *Custom* com *Cloudflare Pages: Read* e *Account Analytics: Read*). Para ver visitas, ative **Web Analytics** em cada projeto (Metrics → Enable) e faça um novo deploy. Sites que ainda não estão em Sistemas entram com um clique.
+- **Google Analytics**: Configurações → Google Analytics → siga os 5 passos (projeto no Google Cloud, 2 APIs, conta de serviço com chave JSON, e-mail da conta como *Leitor* no GA).
+- A tela **Tráfego** junta todos os sites; cada sistema tem o painel com gráfico (deploys marcados), páginas, origens, aparelhos e dicas. Atualiza a cada 30 minutos.
 
 ## Escritório 3D e voz
 Menu **Escritório 3D**. Para falar com os agentes use **Chrome ou Edge** e permita o microfone quando o navegador pedir.

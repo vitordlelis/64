@@ -7,6 +7,7 @@ import { rodarGatilhos } from './mensagens.ts';
 import { expirarTarefas } from './routes/tarefas.ts';
 import { rodarAgentes } from './agentes/agentes.ts';
 import { sincronizarGithub } from './github.ts';
+import { sincronizarTrafego } from './trafego.ts';
 
 const MIN = 60_000;
 const JOBS: [string, number, () => Promise<unknown>][] = [
@@ -19,6 +20,7 @@ const JOBS: [string, number, () => Promise<unknown>][] = [
   ['expirar_tarefas', 10 * MIN, expirarTarefas],
   ['agentes', 5000, rodarAgentes],
   ['github', 10 * MIN, () => sincronizarGithub()], // pedidos do admin começam em segundos
+  ['trafego', 30 * MIN, () => sincronizarTrafego()], // Cloudflare e Google Analytics
   ['limpeza', 24 * 60 * MIN, () => q(`delete from check_saude where checado_em < now() - interval '90 days';
     delete from evento_bruto where ocorrido_em < now() - interval '30 days'; delete from sessao where expira_em < now();`)],
 ];

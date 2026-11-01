@@ -7,6 +7,7 @@ import { proporBloqueio } from '../jobs/soc.ts';
 import { acaoValida } from '../acoes.ts';
 import { notificar } from '../notificar.ts';
 import { gh, statusRepo, tokenGithub } from '../github.ts';
+import { variacaoSemanal } from '../trafego.ts';
 import type { Ferramenta } from './ia.ts';
 
 type Ctx = { agenteId: string; funcao: string; nome: string };
@@ -117,6 +118,20 @@ const F: Record<string, Def> = {
     },
   },
 
+  ver_trafego: {
+    def: { name: 'ver_trafego', description: 'Tráfego e métricas de um sistema (Google Analytics e Cloudflare): visitas por dia, variação semanal, páginas mais vistas, origens, aparelhos, conversões, eventos, último deploy e dicas automáticas.', input_schema: obj({ sistema_id: str('id do sistema') }, ['sistema_id']) },
+    rodar: async ({ sistema_id }) => {
+      const [s] = await q('select nome, trafego, trafego_atualizado_em from sistema where id = $1', [sistema_id]);
+      if (!s?.trafego) return 'Sem dados de tráfego para este sistema (conecte o Cloudflare ou o Google Analytics em Configurações).';
+      const { cloudflare: c, ga, dicas } = s.trafego;
+      const fonte = ga && !ga.erro ? ga : c?.analytics;
+      // caminhos e origens vêm de visitantes: tratados como conteúdo não confiável
+      return { sistema: s.nome, atualizado_em: s.trafego_atualizado_em, semana: fonte ? variacaoSemanal(fonte.dias ?? []) : null, dicas,
+        deploy: c?.deploy ?? null, totais: ga?.totais ?? null, agora: ga?.agora ?? null, erro: ga?.erro ?? c?.erro ?? null,
+        detalhes: fonte && naoConfiavel(JSON.stringify({ paginas: fonte.paginas, origens: fonte.origens, aparelhos: fonte.aparelhos, eventos: ga?.eventos, paises: c?.analytics?.paises })) };
+    },
+  },
+
   // ---------- propostas e registros (nada disso age fora do VL Command) ----------
   registrar_recomendacao: {
     def: { name: 'registrar_recomendacao', description: 'Registra uma recomendação para o administrador (vai para Aprovações). Use para melhorias, correções e observações importantes.', input_schema: obj({
@@ -203,10 +218,10 @@ const F: Record<string, Def> = {
 
 const LEITURA = ['resumo_financeiro', 'listar_sistemas', 'tarefas_recentes'];
 const POR_FUNCAO: Record<string, string[]> = {
-  diretor: [...LEITURA, 'incidentes', 'eventos_seguranca', 'faturas_em_aberto', 'ver_github', 'delegar', 'enviar_resumo', 'registrar_recomendacao'],
-  marketing: [...LEITURA, 'faturas_em_aberto', 'listar_clientes', 'historico_mensagens', 'listar_modelos_mensagem', 'propor_envio_mensagens', 'registrar_recomendacao'],
-  designer: [...LEITURA, 'buscar_pagina', 'ver_github', 'propor_issue', 'registrar_recomendacao'],
-  engenheiro: [...LEITURA, 'incidentes', 'buscar_pagina', 'ver_github', 'propor_issue', 'registrar_recomendacao'],
+  diretor: [...LEITURA, 'incidentes', 'eventos_seguranca', 'faturas_em_aberto', 'ver_github', 'ver_trafego', 'delegar', 'enviar_resumo', 'registrar_recomendacao'],
+  marketing: [...LEITURA, 'ver_trafego', 'faturas_em_aberto', 'listar_clientes', 'historico_mensagens', 'listar_modelos_mensagem', 'propor_envio_mensagens', 'registrar_recomendacao'],
+  designer: [...LEITURA, 'buscar_pagina', 'ver_trafego', 'ver_github', 'propor_issue', 'registrar_recomendacao'],
+  engenheiro: [...LEITURA, 'incidentes', 'buscar_pagina', 'ver_trafego', 'ver_github', 'propor_issue', 'registrar_recomendacao'],
   soc: [...LEITURA, 'eventos_seguranca', 'historico_ip', 'registrar_analise_evento', 'propor_bloqueio_ip', 'registrar_recomendacao'],
   pentester: ['listar_sistemas', 'ler_relatorio_pentest', 'registrar_analise_pentest'],
 };

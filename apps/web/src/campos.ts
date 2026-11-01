@@ -11,12 +11,15 @@ export const CAMPOS_CLIENTE: Campo[] = [
 ];
 
 // Com repos (GitHub conectado) o repositório vira uma lista; sem, campo de texto "dono/nome".
-export const camposSistema = (clientes?: Linha[], repos?: Linha[]): Campo[] => [
+// Com Cloudflare/GA conectados, projeto do Pages e propriedade do GA4 também viram listas.
+export const camposSistema = (clientes?: Linha[], repos?: Linha[], extras: { projetos?: Linha[]; propriedades?: Linha[] } = {}): Campo[] => [
   ...(clientes ? [{ nome: 'cliente_id', rotulo: 'Cliente', tipo: 'select', obrigatorio: true, opcoes: clientes.map((c) => [c.id, c.nome]) } as Campo] : []),
   { nome: 'nome', rotulo: 'Nome', obrigatorio: true },
   { nome: 'url', rotulo: 'Endereço publicado (URL)', tipo: 'url' },
   repos ? { nome: 'github_repo', rotulo: 'Repositório no GitHub', tipo: 'select', opcoes: repos.map((r) => [r.nome, `${r.nome}${r.privado ? ' (privado)' : ''}`]) }
     : { nome: 'github_repo', rotulo: 'Repositório no GitHub (dono/nome)' },
+  ...(extras.projetos ? [{ nome: 'cf_projeto', rotulo: 'Projeto no Cloudflare Pages', tipo: 'select', opcoes: extras.projetos.map((p) => [p.nome, `${p.nome} (${p.subdominio})`]) } as Campo] : []),
+  ...(extras.propriedades ? [{ nome: 'ga_propriedade', rotulo: 'Propriedade no Google Analytics', tipo: 'select', opcoes: extras.propriedades.map((p) => [p.id, `${p.nome} (${p.hosts?.[0] ?? p.id})`]) } as Campo] : []),
   { nome: 'health_url', rotulo: 'URL de health check (opcional)', tipo: 'url' },
   { nome: 'latencia_limite_ms', rotulo: 'Limite de latência (ms)', tipo: 'number' },
   { nome: 'hospedagem', rotulo: 'Hospedagem' },

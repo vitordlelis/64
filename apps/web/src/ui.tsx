@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType, type FormEven
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity, Bell, Bot, Box, ChartLine, CircleCheck, CornerDownLeft, LayoutDashboard, LogOut, Menu, MessageSquare,
-  Power, Receipt, RotateCw, ScrollText, Search, Server, Settings, ShieldCheck, Users, X, type LucideProps,
+  Power, Receipt, RotateCw, ScrollText, Search, Server, Settings, ShieldCheck, TrendingUp, Users, X, type LucideProps,
 } from 'lucide-react';
 import { api, useDados, type Linha } from './api';
 import { avisar, confirmar } from './feedback';
@@ -89,7 +89,7 @@ type Item = { to: string; t: string; I: ComponentType<LucideProps> };
 const GRUPOS: [string, Item[]][] = [
   ['Painel', [{ to: '/', t: 'Visão geral', I: LayoutDashboard }, { to: '/escritorio', t: 'Escritório 3D', I: Box }]],
   ['Negócio', [{ to: '/clientes', t: 'Clientes', I: Users }, { to: '/faturas', t: 'Faturas', I: Receipt }, { to: '/financeiro', t: 'Financeiro', I: ChartLine }, { to: '/mensagens', t: 'Mensagens', I: MessageSquare }]],
-  ['Operação', [{ to: '/sistemas', t: 'Sistemas', I: Server }, { to: '/saude', t: 'Saúde', I: Activity }, { to: '/seguranca', t: 'Segurança', I: ShieldCheck }]],
+  ['Operação', [{ to: '/sistemas', t: 'Sistemas', I: Server }, { to: '/saude', t: 'Saúde', I: Activity }, { to: '/trafego', t: 'Tráfego', I: TrendingUp }, { to: '/seguranca', t: 'Segurança', I: ShieldCheck }]],
   ['Inteligência', [{ to: '/agentes', t: 'Agentes', I: Bot }, { to: '/aprovacoes', t: 'Aprovações', I: CircleCheck }]],
   ['Conta', [{ to: '/notificacoes', t: 'Notificações', I: Bell }, { to: '/auditoria', t: 'Auditoria', I: ScrollText }, { to: '/configuracoes', t: 'Configurações', I: Settings }]],
 ];

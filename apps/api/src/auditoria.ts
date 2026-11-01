@@ -19,7 +19,8 @@ export function auditarEscritas(app: FastifyInstance) {
   app.addHook('onResponse', async (req, rep) => {
     if (req.method === 'GET' || rep.statusCode >= 400 || !req.url.startsWith('/api/')) return;
     if (req.url.startsWith('/api/auth/') || req.url.startsWith('/api/sonda/')) return; // login tem registro próprio; sonda é ruído
-    const { senha: _s, codigo: _c, ...corpo } = (req.body ?? {}) as Record<string, unknown>;
+    // segredos (senha, 2FA, tokens e chaves de integração) nunca vão para o log
+    const { senha: _s, codigo: _c, token: _t, chave: _k, ...corpo } = (req.body ?? {}) as Record<string, unknown>;
     const rota = req.routeOptions.url ?? req.url;
     await registrar({
       autor_tipo: req.adminId ? 'admin' : 'webhook', autor_id: req.adminId, acao: `${req.method} ${rota}`,

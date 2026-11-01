@@ -25,6 +25,11 @@ export function saude(app: FastifyInstance) {
     const [c] = await q(`select s.url, s.github_repo, s.github_atualizado_em, s.github_status->>'erro' as github_erro,
         s.chave_ingestao_hash is not null as chave_gerada,
         exists (select 1 from integracao where nome = 'github') as github_conectado,
+        exists (select 1 from integracao where nome = 'cloudflare') as cloudflare_conectado,
+        exists (select 1 from integracao where nome = 'google') as google_conectado,
+        s.cf_projeto, s.ga_propriedade, s.trafego_atualizado_em, s.trafego->'cloudflare'->>'erro' as cloudflare_erro, s.trafego->'ga'->>'erro' as ga_erro,
+        s.trafego->'cloudflare'->'analytics' is not null and s.trafego->'cloudflare'->'analytics' <> 'null' as cf_analytics,
+        s.trafego->'ga'->>'medicao' as ga_medicao,
         (select row_to_json(k) from (select ok, checado_em, erro, latencia_ms, http_status from check_saude
            where sistema_id = s.id and origem = 'principal' order by checado_em desc limit 1) k) as ultimo_check,
         (select max(ocorrido_em) from evento_bruto where sistema_id = s.id) as ultimo_evento
