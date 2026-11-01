@@ -49,7 +49,9 @@ function Latencia({ serie, sistemas }: { serie: Linha[]; sistemas: Linha[] }) {
   return (
     <section className="card g2 alto">
       <header><h2>Latência dos sistemas</h2>{ms.length > 0 && <span className="ao-vivo">Ao vivo</span>}</header>
-      {!ms.length ? <p className="ajuda">Sem medições nas últimas 6 horas. Cadastre sistemas e o monitor mede a cada minuto.</p> : <>
+      {!ms.length ? <p className="ajuda">{sistemas.length && sistemas.every((s) => !s.url)
+        ? 'Seus sistemas ainda não têm endereço publicado. Abra cada um e informe a URL em Dados (ou conecte o Cloudflare em Configurações, que preenche sozinho): o monitor passa a medir a cada minuto.'
+        : 'Sem medições nas últimas 6 horas. Cadastre sistemas e o monitor mede a cada minuto.'}</p> : <>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
           <div><span className="grande">{Math.round(animado)}</span> <small>ms</small></div>
           <small>média <b style={{ color: '#e2e8f0' }}>{Math.round(ms.reduce((a, b) => a + b, 0) / ms.length)} ms</b> · pico <b style={{ color: '#e2e8f0' }}>{Math.max(...ms)} ms</b></small>
@@ -78,7 +80,7 @@ function Latencia({ serie, sistemas }: { serie: Linha[]; sistemas: Linha[] }) {
           <li key={s.id} style={{ borderBottom: 0, justifyContent: 'space-between' }}>
             <Link to={`/sistemas/${s.id}`} style={{ color: '#cbd5e1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.6rem' }}>
               <span className={`dot ${s.status_saude}`} role="img" aria-label={ROTULO_STATUS[s.status_saude] ?? s.status_saude} />{s.nome}</Link>
-            <small style={{ fontVariantNumeric: 'tabular-nums' }}>{s.latencia_ms != null ? `${s.latencia_ms} ms` : '—'}</small>
+            <small style={{ fontVariantNumeric: 'tabular-nums' }}>{s.latencia_ms != null ? `${s.latencia_ms} ms` : !s.url ? 'sem endereço' : '—'}</small>
           </li>
         ))}
       </ul>
