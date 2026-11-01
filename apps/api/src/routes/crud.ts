@@ -90,6 +90,22 @@ export function crud(app: FastifyInstance) {
       });
   }
 
+  // Excluir sistema (ex.: cadastrado por engano). Não mexe no financeiro nem em bloqueio de IP ativo no Cloudflare.
+  app.delete<{ Params: { id: string } }>('/api/sistemas/:id', { schema: { params: { type: 'object', properties: { id: uuid } } } }, async (req, rep) => {
+    const [s] = await q(`select (select count(*) from assinatura where sistema_id = $1)::int as assinaturas,
+      (select count(*) from bloqueio_ip where sistema_id = $1 and removido_em is null)::int as bloqueios from sistema where id = $1`, [req.params.id]);
+    if (!s) return rep.code(404).send({ erro: 'não encontrado' });
+    if (s.assinaturas) return rep.code(409).send({ erro: 'Este sistema tem assinatura/cobrança ligada. Para não mexer no financeiro, ele não pode ser excluído.' });
+    if (s.bloqueios) return rep.code(409).send({ erro: 'Este sistema tem bloqueio de IP ativo no Cloudflare. Desbloqueie em Segurança antes de excluir.' });
+    // Um único comando: ou apaga tudo, ou nada. Tarefas ficam no histórico, sem o vínculo; as pendentes expiram.
+    await q(`with t as (update tarefa set sistema_id = null, status = case when status in ('rascunho', 'aguardando') then 'expirada' else status end where sistema_id = $1),
+      a as (delete from check_saude where sistema_id = $1), b as (delete from incidente where sistema_id = $1),
+      c as (delete from evento_bruto where sistema_id = $1), d as (delete from evento_seguranca where sistema_id = $1),
+      e as (delete from relatorio_pentest where sistema_id = $1), f as (delete from bloqueio_ip where sistema_id = $1)
+      delete from sistema where id = $1`, [req.params.id]);
+    return { excluido: true };
+  });
+
   app.post<{ Params: { id: string } }>('/api/assinaturas/:id/cancelar', async (req, rep) => {
     const [r] = await q("update assinatura set status = 'cancelada', cancelado_em = current_date where id = $1 and status <> 'cancelada' returning *", [req.params.id]);
     return r ?? rep.code(409).send({ erro: 'assinatura inexistente ou já cancelada' });

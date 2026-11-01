@@ -155,6 +155,16 @@ export function Layout() {
   const me = useDados('/auth/me');
   const notif = useDados<Linha[]>('/notificacoes', { refetchInterval: 30_000 });
   const naoLidas = notif.data?.filter((n) => !n.lida_em).length ?? 0;
+  // Links com #seção (ex.: /sistemas/x#dados): a seção só existe depois que os dados carregam, então tenta por até 3 s.
+  useEffect(() => {
+    if (!local.hash) return;
+    let n = 0;
+    const t = setInterval(() => {
+      const el = document.getElementById(decodeURIComponent(local.hash.slice(1)));
+      if (el || ++n > 30) { clearInterval(t); el?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }, 100);
+    return () => clearInterval(t);
+  }, [local.pathname, local.hash]);
   const pendentes = useDados<Linha[]>('/tarefas?status=aguardando', { refetchInterval: 15_000 }).data?.length ?? 0;
   const badge: Record<string, number> = { '/notificacoes': naoLidas, '/aprovacoes': pendentes };
   const [menu, setMenu] = useState(false);

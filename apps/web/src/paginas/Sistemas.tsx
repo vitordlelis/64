@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, data, useAcao, useDados, type Linha } from '../api';
 import { camposSistema } from '../campos';
 import { Carregando, Formulario, Kpi, Secao, Status, Vazio } from '../ui';
-import { CircleCheck, CircleDashed, CircleX, ExternalLink, FolderGit2, GitCommitHorizontal, GitPullRequest, CircleDot, Plus, RefreshCw, Server, Tag } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleX, ExternalLink, Pencil, Trash2, FolderGit2, GitCommitHorizontal, GitPullRequest, CircleDot, Plus, RefreshCw, Server, Tag } from 'lucide-react';
 import { avisar, confirmar } from '../feedback';
 import { PainelTrafego } from './Trafego';
 
@@ -14,6 +14,7 @@ export function Sistemas() {
   const criar = useAcao((v: Linha) => api('/sistemas', 'POST', v), false);
   const repos = useRepos();
   const nome = (cid: string) => clientes.data?.find((c) => c.id === cid)?.nome ?? '—';
+  const excluir = useExcluir();
   return (
     <>
       <header className="titulo">
@@ -27,11 +28,15 @@ export function Sistemas() {
           texto="Importe os repositórios do GitHub de uma vez ou cadastre um sistema pelo endereço: o monitor passa a medir disponibilidade e tempo de resposta a cada minuto."
           acao={<Link to="/sistemas/importar" className="botao"><FolderGit2 size={16} aria-hidden /> Importar do GitHub</Link>} />}
         {!!sistemas.data?.length && <table>
-          <thead><tr><th>Status</th><th>Sistema</th><th>Cliente</th><th>Build</th><th>URL</th><th>SSL vence</th><th>Domínio vence</th></tr></thead>
+          <thead><tr><th>Status</th><th>Sistema</th><th>Cliente</th><th>Build</th><th>URL</th><th>SSL vence</th><th>Domínio vence</th><th><span className="sr-only">Ações</span></th></tr></thead>
           <tbody>{sistemas.data?.map((s) => (
             <tr key={s.id}><td><Status s={s.status_saude} /></td><td><Link to={`/sistemas/${s.id}`}>{s.nome}</Link></td>
               <td><Link to={`/clientes/${s.cliente_id}`}>{nome(s.cliente_id)}</Link></td><td><CiPill s={s} /></td><td>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.url}</a> : <span className="pill aguardando">sem endereço</span>}</td>
-              <td>{data(s.ssl_expira_em)}</td><td>{data(s.dominio_expira_em)}</td></tr>
+              <td>{data(s.ssl_expira_em)}</td><td>{data(s.dominio_expira_em)}</td>
+              <td><span className="linha" style={{ flexWrap: 'nowrap' }}>
+                <Link to={`/sistemas/${s.id}#dados`} className="icone" aria-label={`Editar ${s.nome}`} title="Editar"><Pencil size={15} /></Link>
+                <button className="icone perigo" aria-label={`Excluir ${s.nome}`} title="Excluir" onClick={() => excluir(s)}><Trash2 size={15} /></button>
+              </span></td></tr>
           ))}</tbody>
         </table>}
       </Secao>
@@ -47,6 +52,8 @@ export function Sistema() {
   const salvar = useAcao((v: Linha) => api(`/sistemas/${id}`, 'PATCH', v), false);
   const repos = useRepos();
   const extras = useExtras();
+  const nav = useNavigate();
+  const excluir = useExcluir();
   if (!sistema.data) return <Carregando q={sistema} />;
   const s = sistema.data, h = saude.data;
   const up = (v: number | null) => (v == null ? '—' : `${v}%`);
@@ -77,7 +84,8 @@ export function Sistema() {
         </Secao>
         <PainelGithub s={s} />
         <PenTest s={s} />
-        <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema(undefined, repos.data, extras)} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
+        <Secao titulo="Dados e base de conhecimento" id="dados"
+          acoes={<button className="secundario perigo" onClick={async () => (await excluir(s)) && nav('/sistemas')}><Trash2 size={14} aria-hidden /> Excluir</button>}><Formulario key={s.id} campos={camposSistema(undefined, repos.data, extras)} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
       </div>
     </>
   );
@@ -197,6 +205,17 @@ function PenTest({ s }: { s: Linha }) {
       ))}
     </Secao>
   );
+}
+
+// Confirma e exclui; devolve true se excluiu. Medições, incidentes e eventos do sistema vão junto; o financeiro nunca.
+function useExcluir() {
+  const acao = useAcao((id: string) => api(`/sistemas/${id}`, 'DELETE'));
+  return async (s: Linha) => {
+    if (!(await confirmar({ titulo: `Excluir ${s.nome}?`, texto: 'O monitoramento para e o histórico de medições, incidentes e eventos deste sistema é apagado. Não dá para desfazer. Sistemas com cobrança não podem ser excluídos.', acao: 'Excluir', perigo: true }))) return false;
+    try { await acao.mutateAsync(s.id); } catch { return false; } // o erro já aparece no aviso
+    avisar(`${s.nome} excluído`);
+    return true;
+  };
 }
 
 // Projetos do Cloudflare Pages e propriedades do GA4 para os campos de Dados (undefined se não conectados).

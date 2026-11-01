@@ -154,3 +154,18 @@ test('agentes: ferramenta ver_trafego entrega números e dicas, com conteúdo de
   assert.ok(r.detalhes.startsWith('<conteudo_nao_confiavel>'));
   await assert.rejects(ferramentasDe({ funcao: 'soc', agenteId: null } as never).executar('ver_trafego', { sistema_id: id }));
 });
+
+test('excluir sistema: apaga o sistema e o histórico de medições; recusa se houver cobrança', async () => {
+  const [{ id: cli }] = await q("insert into cliente (nome) values ('Cliente Excluir') returning id");
+  const [{ id }] = await q("insert into sistema (cliente_id, nome, url) values ($1, 'Engano', 'https://engano.exemplo') returning id", [cli]);
+  await q("insert into check_saude (sistema_id, ok, latencia_ms, origem) values ($1, true, 100, 'principal')", [id]);
+  const [{ id: tid }] = await q("insert into tarefa (sistema_id, origem, titulo, descricao) values ($1, 'admin_texto', 'x', 'y') returning id", [id]);
+  assert.equal((await req('DELETE', `/api/sistemas/${id}`)).status, 200);
+  assert.equal((await q('select 1 from sistema where id = $1', [id])).length, 0);
+  assert.equal((await q('select status, sistema_id from tarefa where id = $1', [tid]))[0].status, 'expirada');
+
+  const [{ id: pago }] = await q("insert into sistema (cliente_id, nome) values ($1, 'Pago') returning id", [cli]);
+  await q("insert into assinatura (cliente_id, sistema_id, inicio_em, valor_mensal_cent) values ($1, $2, current_date, 1000)", [cli, pago]);
+  assert.equal((await req('DELETE', `/api/sistemas/${pago}`)).status, 409);
+  assert.equal((await q('select 1 from sistema where id = $1', [pago])).length, 1);
+});
