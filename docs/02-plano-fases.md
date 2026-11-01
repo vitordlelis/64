@@ -19,12 +19,12 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 
 **Pronto quando:** todos os sistemas reais estão cadastrados, faturas do mês saem sozinhas e uma queda real gera alerta em < 3 min.
 
-## Fase 2 — Segurança e mensagens ✅ implementada
-- **Ingestão de eventos de segurança**: pacote leve (npm/PHP/Python conforme a stack dos sistemas) que envia login falho, 4xx/5xx e volume de requisições com a chave de ingestão do sistema. Alternativa sem código: logs da Cloudflare.
+## Fase 2 — Segurança e mensagens ✅ implementada (exceto os itens marcados ⏳)
+- **Ingestão de eventos de segurança**: ⏳ o pacote pronto (npm/PHP/Python) não foi feito; hoje há um exemplo de código na página de cada sistema que envia login falho, 4xx/5xx e volume de requisições com a chave de ingestão do sistema. Alternativa sem código: logs da Cloudflare.
 - **SOC N1 (regras determinísticas)**: força bruta, pico de requisições, varredura, anomalia de erros → `evento_seguranca` com severidade, recomendação e timeline; crítico alerta na hora.
 - **Executor** (primeira versão) com ações: `enviar_mensagens`, `bloquear_ip` — sempre via tarefa aprovada.
 - **Central de mensagens**: construtor com variáveis, modelos prontos, gatilhos por data/evento, agendamento, WhatsApp Cloud API + e-mail, confirmação de disparo em massa, histórico de status por webhook, opt-out e horário comercial.
-- **Relatórios mensais** por cliente (PDF) e **portal do cliente** (somente leitura: status do sistema e faturas, com RLS).
+- ⏳ **Relatórios mensais** por cliente (PDF) e **portal do cliente** (somente leitura: status do sistema e faturas, com RLS) — **ainda não implementados**.
 
 **Pronto quando:** lembretes de vencimento saem automaticamente após aprovação e uma tentativa de força bruta simulada num sistema próprio gera alerta e proposta de bloqueio.
 
@@ -80,3 +80,10 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 - Telão com o faturamento do ano. Clique no agente abre o painel com o que está fazendo e o pedido por texto.
 - **Voz** (Chrome/Edge, Web Speech API em pt-BR): diga o nome do agente e o pedido; a resposta é falada. "Confirmo" aprova a única proposta pendente do agente selecionado, sempre com um clique de confirmação; ações de alto impacto continuam exigindo o código do autenticador na tela Aprovações.
 - Lista em texto dos agentes ao lado da cena, para leitores de tela.
+
+## Pendências conhecidas (conferência de 01/11/2026)
+- ⏳ Portal do cliente e relatórios mensais por cliente (escopo, seção 9).
+- ⏳ Webhook para os sistemas avisarem eventos de saúde (escopo, Módulo 2); hoje a saúde vem só do monitor e da sonda externa.
+- ⏳ Faturamento detalhado **por projeto/sistema** (escopo, Módulo 1); hoje há por cliente.
+- ⏳ Alertas ao administrador por WhatsApp/push (escopo, seção 9); hoje por e-mail e no painel.
+- ⏳ Engenheiro e Designer abrirem PRs no GitHub; hoje registram recomendações.

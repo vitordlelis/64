@@ -13,10 +13,10 @@ Navegação lateral fixa. Topo: busca global, sino de notificações, contador d
 | 7 | **Saúde (Uptime)** | Painel semáforo agrupado por cliente, atualização em tempo real; histórico de incidentes com duração. | 1 |
 | 8 | **Segurança (SOC)** | Timeline de eventos por sistema com severidade, recomendação e evidências; ações: reconhecer, resolver, marcar falso positivo, pedir bloqueio de IP. Botão **Executar pen test** e lista de relatórios. | 2 |
 | 9 | **Mensagens** | Abas: *Modelos* (construtor com variáveis clicáveis e pré-visualização), *Automações* (gatilhos, agendamento, recorrência), *Disparo manual*, *Histórico* (status por mensagem). Status dos templates na Meta. | 2 |
-| 10 | **Relatórios** | Relatórios mensais por cliente: gerar, visualizar, enviar. | 2 |
+| 10 | **Relatórios** ⏳ não implementada | Relatórios mensais por cliente: gerar, visualizar, enviar. | 2 |
 | 11 | **Agentes** | Card por agente (nome, função, estado, tarefa atual, custo do dia, pausar/ativar). Histórico de atividade. Campo de comando por texto. | 3 |
 | 12 | **Aprovações** | Fila de tarefas aguardando: descrição, análise, ação exata que será executada (ex.: lista de destinatários, diff do PR, IP a bloquear), impacto. Aprovar (TOTP se alto impacto) / rejeitar com motivo. | 3 |
 | 13 | **Escritório 3D** | Cena com os agentes nas mesas refletindo estado real, telão com faturamento anual, clique no agente abre painel, botão de voz e campo de texto. | 4 |
 | 14 | **Auditoria** | Log global pesquisável por autor, ação, entidade e período. Exportar CSV. | 1 |
 | 15 | **Configurações** | Conta e 2FA, metas de receita, integrações (Asaas, WhatsApp, e-mail, Cloudflare, GitHub), horário comercial, limites dos agentes. | 1 |
-| 16 | **Portal do cliente** (app separado, mesma API) | Cliente vê status do seu sistema, faturas e relatórios. Login próprio, somente leitura. | 2 |
+| 16 | **Portal do cliente** ⏳ não implementado (app separado, mesma API) | Cliente vê status do seu sistema, faturas e relatórios. Login próprio, somente leitura. | 2 |
