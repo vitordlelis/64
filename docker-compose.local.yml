@@ -10,7 +10,7 @@ x-app: &app
     DATABASE_URL: postgres://vlc:vlc@postgres:5432/vlc
     APP_KEY: chave-local-somente-para-demonstracao-123
     NODE_ENV: development   # cookie sem "Secure", pois localhost é http
-    PERMITIR_DESLIGAR: "1"  # botão "Desligar sistema" no site
+    PERMITIR_DESLIGAR: "1"  # botões "Desligar" e "Reiniciar" no site
     PERMITIR_PRIMEIRO_ACESSO: "1"  # sem usuário cadastrado, a tela de login vira "criar acesso"
     # Opcionais, lidos do arquivo .env desta pasta. Sem eles, envios/bloqueios falham com aviso claro.
     ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}

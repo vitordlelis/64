@@ -40,6 +40,7 @@ test('login exige senha e TOTP; rotas privadas exigem sessão', async () => {
   assert.equal((await req('GET', '/api/auth/me')).body.email, 'adm@vl.com');
   assert.equal((await req('GET', '/api/auth/me')).body.pode_desligar, false);
   assert.equal((await req('POST', '/api/sistema/desligar')).status, 404); // fora do modo local o botão não existe
+  assert.equal((await req('POST', '/api/sistema/reiniciar')).status, 404);
   // primeiro acesso: fechado quando a flag está desligada e quando já existe admin
   assert.equal((await req('GET', '/api/auth/primeiro-acesso')).body.disponivel, false);
   process.env.PERMITIR_PRIMEIRO_ACESSO = '1';

@@ -3,12 +3,15 @@ import { q } from '../db.ts';
 
 // Notificações e auditoria.
 export function admin(app: FastifyInstance) {
-  // Só no modo local (docker-compose.local.yml): o atalho "VL Command" percebe a saída e desliga o resto.
-  app.post('/api/sistema/desligar', async (_req, rep) => {
-    if (process.env.PERMITIR_DESLIGAR !== '1') return rep.code(404).send({ erro: 'não encontrado' });
-    setTimeout(() => process.exit(0), 1000); // tempo para responder e gravar a auditoria
-    return { ok: true };
-  });
+  // Só no modo local (docker-compose.local.yml). A app encerra; o atalho "VL Command" lê na auditoria
+  // qual botão foi clicado ("POST /api/sistema/desligar" ou ".../reiniciar") e desliga ou religa tudo.
+  for (const pedido of ['desligar', 'reiniciar']) {
+    app.post(`/api/sistema/${pedido}`, async (_req, rep) => {
+      if (process.env.PERMITIR_DESLIGAR !== '1') return rep.code(404).send({ erro: 'não encontrado' });
+      setTimeout(() => process.exit(0), 1000); // tempo para responder e gravar a auditoria
+      return { ok: true };
+    });
+  }
 
   app.get('/api/notificacoes', () => q('select * from notificacao order by criado_em desc limit 200'));
   app.post<{ Params: { id: string } }>('/api/notificacoes/:id/lida', async (req) => {

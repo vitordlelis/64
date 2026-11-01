@@ -19,6 +19,8 @@ git clone https://github.com/vitordlelis/64.git vl-command
   Na primeira vez ele cria o atalho **VL Command** na área de trabalho; depois é só usar o atalho.
   Ele abre o Docker Desktop se precisar, baixa as atualizações, liga o sistema e abre o navegador
   (a primeira vez demora alguns minutos). Deixe a janela preta minimizada.
+- **Reiniciar:** botão **↻ Reiniciar sistema** no menu do site. Desliga e religa tudo (aplicando atualizações e mudanças no `.env`);
+  a página volta sozinha, ainda logada, em cerca de 30 segundos. Precisa que o sistema tenha sido ligado pelo atalho.
 - **Desligar:** botão **⏻ Desligar sistema** no menu do site.
 
 **Primeiro acesso:** a tela pede seu e-mail, uma senha e mostra uma chave para você adicionar no app autenticador;

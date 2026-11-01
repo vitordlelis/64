@@ -13,6 +13,8 @@ nav a:hover, nav a:focus-visible { background: #1e293b; color: #fff; }
 nav a.active { background: var(--primaria); color: #fff; }
 nav .desligar { margin-top: auto; background: #7f1d1d; text-align: left; }
 nav .desligar + .sair { margin-top: 0; }
+nav .reiniciar { background: #1e3a8a; }
+nav .reiniciar + .desligar { margin-top: 4px; }
 nav .sair { margin-top: auto; color: #94a3b8; text-align: left; padding: .5rem .75rem; }
 .badge { background: var(--vermelho); color: #fff; border-radius: 99px; padding: 0 .45rem; font-size: .75rem; }
 main { padding: 1.5rem 2rem; max-width: 1400px; }

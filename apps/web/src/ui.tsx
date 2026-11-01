@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api, useDados, type Linha } from './api';
 
@@ -72,11 +72,28 @@ export function Layout() {
   const naoLidas = notif.data?.filter((n) => !n.lida_em).length ?? 0;
   const pendentes = useDados<Linha[]>('/tarefas?status=aguardando', { refetchInterval: 15_000 }).data?.length ?? 0;
   const badge: Record<string, [number, string]> = { '/notificacoes': [naoLidas, 'não lidas'], '/aprovacoes': [pendentes, 'aguardando'] };
-  const [desligado, setDesligado] = useState(false);
-  if (desligado) return (
+  const [parado, setParado] = useState<'desligado' | 'reiniciando' | null>(null);
+  useEffect(() => {
+    if (parado !== 'reiniciando') return;
+    // espera o sistema sair do ar e voltar; a sessão continua válida, então só recarrega a página
+    let caiu = false;
+    const id = setInterval(async () => {
+      const ok = await fetch('/api/health').then((r) => r.ok).catch(() => false);
+      if (!ok) caiu = true;
+      else if (caiu) location.reload();
+    }, 3000);
+    return () => clearInterval(id);
+  }, [parado]);
+  if (parado) return (
     <main className="login"><div className="card" role="status">
-      <h1>VL Command desligado</h1>
-      <p>Para ligar de novo, dê dois cliques no atalho <strong>VL Command</strong> da área de trabalho.</p>
+      {parado === 'desligado' ? <>
+        <h1>VL Command desligado</h1>
+        <p>Para ligar de novo, dê dois cliques no atalho <strong>VL Command</strong> da área de trabalho.</p>
+      </> : <>
+        <h1>Reiniciando…</h1>
+        <p>O sistema está sendo religado. Esta página volta sozinha quando ele estiver no ar (cerca de 1 minuto).</p>
+        <p><small>Se não voltar em 3 minutos, confira a janela preta do atalho ou ligue pelo atalho <strong>VL Command</strong>.</small></p>
+      </>}
     </div></main>
   );
   if (!me.data) return null;
@@ -88,10 +105,17 @@ export function Layout() {
           <NavLink key={to} to={to} end={to === '/'}>{t}{badge[to]?.[0] ? <span className="badge" aria-label={`${badge[to][0]} ${badge[to][1]}`}>{badge[to][0]}</span> : null}</NavLink>
         ))}
         {me.data.pode_desligar && (
+          <button className="desligar reiniciar" onClick={async () => {
+            if (!confirm('Reiniciar o VL Command agora? Leva cerca de 1 minuto.')) return;
+            await api('/sistema/reiniciar', 'POST');
+            setParado('reiniciando');
+          }}>↻ Reiniciar sistema</button>
+        )}
+        {me.data.pode_desligar && (
           <button className="desligar" onClick={async () => {
             if (!confirm('Desligar o VL Command agora?')) return;
             await api('/sistema/desligar', 'POST');
-            setDesligado(true);
+            setParado('desligado');
           }}>⏻ Desligar sistema</button>
         )}
         <button className="link sair" onClick={async () => { await api('/auth/logout', 'POST'); nav('/login'); }}>Sair ({me.data.email})</button>

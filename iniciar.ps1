@@ -30,24 +30,41 @@ if (-not (DockerPronto)) {
     }
 }
 
-Write-Host 'Buscando atualizações...'
-git pull --ff-only
-if ($LASTEXITCODE -ne 0) { Write-Host 'Sem atualizações (ou sem internet). Seguindo com a versão atual.' }
-
-Write-Host 'Ligando o VL Command (na primeira vez demora alguns minutos)...'
-docker @compose up -d --build
-if ($LASTEXITCODE -ne 0) { Write-Host 'Falha ao ligar. Copie as mensagens acima e envie ao suporte.'; Read-Host 'Enter para fechar'; exit 1 }
-
+# Qual botão foi clicado no site nos últimos 2 minutos ("desligar" ou "reiniciar"), lido da auditoria no banco.
+function PedidoDoSite {
+    $sql = "select split_part(acao, '/', 4) from log_auditoria where acao in ('POST /api/sistema/desligar', 'POST /api/sistema/reiniciar') and criado_em > now() - interval '2 minutes' order by id desc limit 1"
+    "$(docker @compose exec -T postgres psql -U vlc -d vlc -tAc $sql 2>$null)".Trim()
+}
 function SiteNoAr { try { (Invoke-WebRequest 'http://localhost:3000/api/health' -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200 } catch { $false } }
-while (-not (SiteNoAr)) { Start-Sleep 2 }
-Start-Process 'http://localhost:3000'
-Write-Host ''
-Write-Host 'VL Command LIGADO em http://localhost:3000'
-Write-Host 'Pode minimizar esta janela. Para desligar, use o botão "Desligar sistema" no site.'
+$primeiraVez = $true
 
-# Espera o botão "Desligar sistema" (a app encerra sozinha) e desliga o banco e o worker.
-while (docker @compose ps -q --status running app) { Start-Sleep 5 }
-Write-Host 'Desligando...'
-docker @compose stop
+do {
+    Write-Host 'Buscando atualizações...'
+    git pull --ff-only
+    if ($LASTEXITCODE -ne 0) { Write-Host 'Sem atualizações (ou sem internet). Seguindo com a versão atual.' }
+
+    Write-Host 'Ligando o VL Command (na primeira vez demora alguns minutos)...'
+    docker @compose up -d --build
+    if ($LASTEXITCODE -ne 0) { Write-Host 'Falha ao ligar. Copie as mensagens acima e envie ao suporte.'; Read-Host 'Enter para fechar'; exit 1 }
+
+    while (-not (SiteNoAr)) { Start-Sleep 2 }
+    if ($primeiraVez) { Start-Process 'http://localhost:3000'; $primeiraVez = $false }  # ao reiniciar, a aba aberta recarrega sozinha
+    Write-Host ''
+    Write-Host 'VL Command LIGADO em http://localhost:3000'
+    Write-Host 'Pode minimizar esta janela. Use os botões "Reiniciar" ou "Desligar" no site.'
+
+    # Espera a app encerrar (botão no site) e então desliga o banco, o worker e o executor.
+    while ($true) {
+        while (docker @compose ps -q --status running app) { Start-Sleep 3 }
+        $pedido = PedidoDoSite
+        if ($pedido) { break }
+        Start-Sleep 10  # sem pedido: pode ser erro passageiro que o Docker religa sozinho
+        if (-not (docker @compose ps -q --status running app)) { break }
+    }
+    Write-Host 'Parando os serviços...'
+    docker @compose stop
+    if ($pedido -eq 'reiniciar') { Write-Host 'Reiniciando...' }
+} while ($pedido -eq 'reiniciar')
+
 Write-Host 'VL Command DESLIGADO.'
 Start-Sleep 3
