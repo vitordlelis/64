@@ -86,4 +86,4 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 - ⏳ Webhook para os sistemas avisarem eventos de saúde (escopo, Módulo 2); hoje a saúde vem só do monitor e da sonda externa.
 - ⏳ Faturamento detalhado **por projeto/sistema** (escopo, Módulo 1); hoje há por cliente.
 - ⏳ Alertas ao administrador por WhatsApp/push (escopo, seção 9); hoje por e-mail e no painel.
-- ⏳ Engenheiro e Designer abrirem PRs no GitHub; hoje registram recomendações.
+- ✅ (01/11) Integração com o GitHub: conexão por token em Configurações, repositório por sistema (importação na ficha do cliente), verificação a cada 10 min de build (Actions), commits, PRs, issues e versão, alerta quando o build quebra/volta, e Engenheiro/Designer propõem **issues** (criadas só após aprovação). Abrir PRs com código continua fora do escopo.

@@ -48,6 +48,12 @@ ANTHROPIC_API_KEY=sua-chave
 ```
 Cada agente tem teto de US$ 1 por dia (ajustável). Sem a chave, os agentes ficam parados.
 
+## Conectar o GitHub (seus sistemas reais)
+Em **Configurações → GitHub**, siga o passo a passo para gerar um *fine-grained token* e cole no campo.
+Depois, na ficha de cada cliente, use **Importar um repositório do GitHub**: o sistema é criado, o endereço publicado
+passa a ser monitorado (no ar, tempo de resposta, SSL) e o repositório é verificado a cada 10 minutos
+(build/testes do GitHub Actions, commits, PRs, issues e última versão). Se o build quebrar, chega um alerta.
+
 ## Escritório 3D e voz
 Menu **Escritório 3D**. Para falar com os agentes use **Chrome ou Edge** e permita o microfone quando o navegador pedir.
 Diga o nome do agente e o pedido (ex.: "Helena, como foi o dia?"). Sem a chave da API os agentes não respondem, mas a cena mostra os estados.

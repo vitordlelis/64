@@ -6,6 +6,7 @@ import { prepararLote, DEST_MANUAL, type Destinatario } from '../mensagens.ts';
 import { proporBloqueio } from '../jobs/soc.ts';
 import { acaoValida } from '../acoes.ts';
 import { notificar } from '../notificar.ts';
+import { gh, statusRepo, tokenGithub } from '../github.ts';
 import type { Ferramenta } from './ia.ts';
 
 type Ctx = { agenteId: string; funcao: string; nome: string };
@@ -100,6 +101,21 @@ const F: Record<string, Def> = {
     rodar: async ({ relatorio_id }) => (await q('select r.resumo, r.achados, s.nome as sistema, s.url from relatorio_pentest r join sistema s on s.id = r.sistema_id where r.id = $1', [relatorio_id]))[0] ?? 'não encontrado',
   },
 
+  ver_github: {
+    def: { name: 'ver_github', description: 'Situação do repositório de um sistema no GitHub: último build (CI), commits recentes, PRs e issues abertas.', input_schema: obj({ sistema_id: str('id do sistema') }, ['sistema_id']) },
+    rodar: async ({ sistema_id }) => {
+      const [s] = await q('select github_repo from sistema where id = $1', [sistema_id]);
+      if (!s?.github_repo) return 'Este sistema não tem repositório do GitHub ligado.';
+      const token = await tokenGithub();
+      if (!token) return 'GitHub não conectado no VL Command.';
+      const issues = await gh(`/repos/${s.github_repo}/issues?state=open&per_page=20`, token);
+      return {
+        ...(await statusRepo(s.github_repo, token)),
+        issues: naoConfiavel(JSON.stringify((issues as Record<string, unknown>[]).filter((i) => !i.pull_request).map((i) => ({ numero: i.number, titulo: i.title })))),
+      };
+    },
+  },
+
   // ---------- propostas e registros (nada disso age fora do VL Command) ----------
   registrar_recomendacao: {
     def: { name: 'registrar_recomendacao', description: 'Registra uma recomendação para o administrador (vai para Aprovações). Use para melhorias, correções e observações importantes.', input_schema: obj({
@@ -118,6 +134,23 @@ const F: Record<string, Def> = {
       if (!lote) return 'Nenhum destinatário válido (sem contato, opt-out ou já recebeu).';
       await q("update tarefa set descricao = $2 || ' ' || descricao where id = $1", [lote.tarefa_id, String(e.justificativa).slice(0, 1000)]);
       return `Proposta criada para ${lote.total} cliente(s); aguarda aprovação.`;
+    },
+  },
+  propor_issue: {
+    def: { name: 'propor_issue', description: 'Propõe abrir uma issue no repositório do sistema no GitHub (só é criada após aprovação do administrador). Use para bugs e melhorias concretas, com passos.', input_schema: obj({
+      sistema_id: str('id do sistema (precisa ter repositório ligado)'), titulo: str('Título da issue'), descricao: str('Corpo em Markdown: problema, evidência e o que fazer'),
+    }, ['sistema_id', 'titulo', 'descricao']) },
+    rodar: async (e, c) => {
+      const [s] = await q('select nome, github_repo from sistema where id = $1', [e.sistema_id]);
+      if (!s?.github_repo) return 'Esse sistema não tem repositório ligado; use registrar_recomendacao.';
+      const titulo = String(e.titulo).slice(0, 200);
+      const [dup] = await q("select 1 from tarefa where acao_tipo = 'abrir_issue' and status = 'aguardando' and acao_payload->>'titulo' = $1", [titulo]);
+      if (dup) return 'Já existe uma proposta igual aguardando aprovação.';
+      await q(`insert into tarefa (agente_id, sistema_id, origem, titulo, descricao, acao_tipo, acao_payload, impacto)
+        values ($1, $2, 'autonoma', $3, $4, 'abrir_issue', $5, 'baixo')`,
+        [c.agenteId, e.sistema_id, `Abrir issue em ${s.github_repo}: ${titulo}`, String(e.descricao).slice(0, 4000),
+          { sistema_id: e.sistema_id, titulo, corpo: String(e.descricao).slice(0, 20_000) }]);
+      return 'Issue proposta; aguarda aprovação.';
     },
   },
   propor_bloqueio_ip: {
@@ -169,10 +202,10 @@ const F: Record<string, Def> = {
 
 const LEITURA = ['resumo_financeiro', 'listar_sistemas', 'tarefas_recentes'];
 const POR_FUNCAO: Record<string, string[]> = {
-  diretor: [...LEITURA, 'incidentes', 'eventos_seguranca', 'faturas_em_aberto', 'delegar', 'enviar_resumo', 'registrar_recomendacao'],
+  diretor: [...LEITURA, 'incidentes', 'eventos_seguranca', 'faturas_em_aberto', 'ver_github', 'delegar', 'enviar_resumo', 'registrar_recomendacao'],
   marketing: [...LEITURA, 'faturas_em_aberto', 'listar_clientes', 'historico_mensagens', 'listar_modelos_mensagem', 'propor_envio_mensagens', 'registrar_recomendacao'],
-  designer: [...LEITURA, 'buscar_pagina', 'registrar_recomendacao'],
-  engenheiro: [...LEITURA, 'incidentes', 'buscar_pagina', 'registrar_recomendacao'],
+  designer: [...LEITURA, 'buscar_pagina', 'ver_github', 'propor_issue', 'registrar_recomendacao'],
+  engenheiro: [...LEITURA, 'incidentes', 'buscar_pagina', 'ver_github', 'propor_issue', 'registrar_recomendacao'],
   soc: [...LEITURA, 'eventos_seguranca', 'historico_ip', 'registrar_analise_evento', 'propor_bloqueio_ip', 'registrar_recomendacao'],
   pentester: ['listar_sistemas', 'ler_relatorio_pentest', 'registrar_analise_pentest'],
 };

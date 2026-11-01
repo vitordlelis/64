@@ -1,5 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { q } from '../db.ts';
+import { sincronizarGithub } from '../github.ts';
+
+// Repositório ligado/alterado: verifica o GitHub na hora, sem esperar o ciclo de 10 min.
+const verificarRepo = (tabela: string, r: { id?: string; github_repo?: string } | undefined) => {
+  if (tabela === 'sistema' && r?.id && r.github_repo) void sincronizarGithub(r.id).catch(() => {});
+};
 
 const txt = { type: ['string', 'null'], maxLength: 2000 };
 const data = { type: ['string', 'null'], format: 'date' };
@@ -21,6 +27,7 @@ const ENTIDADES = {
       cliente_id: uuid, nome: { type: 'string', minLength: 1, maxLength: 200 },
       url: { type: 'string', pattern: '^https?://', maxLength: 500 },
       health_url: { type: ['string', 'null'], pattern: '^https?://', maxLength: 500 }, waf_zona_id: txt, pentest_autorizado: { type: 'boolean' },
+      github_repo: { type: ['string', 'null'], pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$', maxLength: 200 },
       hospedagem: txt, dominio: txt, dominio_expira_em: data, ssl_expira_em: data,
       credenciais_ref: txt, notas: txt, latencia_limite_ms: { type: 'integer', minimum: 100, maximum: 30000 },
     },
@@ -63,6 +70,7 @@ export function crud(app: FastifyInstance) {
     app.post<{ Body: Record<string, unknown> }>(`/api/${rota}`, { schema: { body } }, async (req, rep) => {
       const ks = Object.keys(req.body);
       const [r] = await q(`insert into ${tabela} (${ks.join(',')}) values (${ks.map((_, i) => `$${i + 1}`).join(',')}) returning *`, Object.values(req.body));
+      verificarRepo(tabela, r);
       return rep.code(201).send(r);
     });
 
@@ -71,6 +79,7 @@ export function crud(app: FastifyInstance) {
       async (req, rep) => {
         const ks = Object.keys(req.body);
         const [r] = await q(`update ${tabela} set ${ks.map((k, i) => `${k} = $${i + 2}`).join(',')} where id = $1 returning *`, [req.params.id, ...Object.values(req.body)]);
+        if ('github_repo' in req.body) verificarRepo(tabela, r);
         return r ?? rep.code(404).send({ erro: 'não encontrado' });
       });
   }

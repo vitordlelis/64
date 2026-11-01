@@ -1,10 +1,11 @@
 import { Link, useParams } from 'react-router-dom';
 import { api, brl, data, hoje, useAcao, useDados, type Linha } from '../api';
 import { CAMPOS_CLIENTE, camposAssinatura, camposSistema } from '../campos';
+import { CiPill, useRepos } from './Sistemas';
 import { Carregando, Formulario, Secao, Status, Vazio } from '../ui';
 import { Plus, Users } from 'lucide-react';
 import { TabelaFaturas } from './Faturas';
-import { confirmar } from '../feedback';
+import { confirmar, perguntar } from '../feedback';
 
 export function Clientes() {
   const clientes = useDados<Linha[]>('/clientes');
@@ -46,6 +47,14 @@ export function Cliente() {
     cliente_id: id, assinatura_id: a.id, tipo: 'projeto', valor_cent: a.valor_projeto_cent,
     vencimento: new Date(Date.now() + 7 * 86_400_000).toLocaleDateString('sv-SE'),
   }));
+  const repos = useRepos();
+  const importar = useAcao(async (repo: Linha) => {
+    let url = repo.homepage as string | null;
+    if (!url) url = await perguntar({ titulo: `Onde ${repo.nome} está publicado?`, texto: 'O VL Command vai monitorar este endereço (se está no ar, tempo de resposta, SSL).', rotulo: 'Endereço do sistema (URL)', placeholder: 'https://…', acao: 'Importar' });
+    if (!url) return;
+    return api('/sistemas', 'POST', { cliente_id: id, nome: String(repo.nome).split('/')[1], url: url.trim(), github_repo: repo.nome });
+  });
+  const ligados = new Set((sistemas.data ?? []).map((s) => s.github_repo));
   const nomeSistema = (sid: string) => sistemas.data?.find((s) => s.id === sid)?.nome ?? '—';
 
   if (!cliente.data) return <Carregando q={cliente} />;
@@ -55,8 +64,25 @@ export function Cliente() {
       <div className="grid2">
         <Secao titulo="Dados"><Formulario key={cliente.data.id} campos={CAMPOS_CLIENTE} inicial={cliente.data} onSalvar={salvar.mutateAsync} /></Secao>
         <Secao titulo="Sistemas">
-          <ul className="lista">{sistemas.data?.map((s) => <li key={s.id}><Status s={s.status_saude} /> <Link to={`/sistemas/${s.id}`}>{s.nome}</Link> <small>{s.url}</small></li>)}</ul>
-          <details><summary>Adicionar sistema</summary><Formulario campos={camposSistema()} onSalvar={novoSistema.mutateAsync} botao="Adicionar" /></details>
+          <ul className="lista">{sistemas.data?.map((s) => (
+            <li key={s.id}><Status s={s.status_saude} /> <Link to={`/sistemas/${s.id}`}>{s.nome}</Link>
+              {s.github_repo && <><small>{s.github_repo}</small> <CiPill s={s} /></>} <small style={{ marginLeft: 'auto' }}>{s.url}</small></li>
+          ))}</ul>
+          {repos.data && !repos.data.some((r) => !ligados.has(r.nome)) ? <p><small>Todos os seus repositórios do GitHub já estão ligados a sistemas.</small></p> : repos.data ? (
+            <form className="comando importar" onSubmit={(e) => {
+              e.preventDefault();
+              const nome = new FormData(e.currentTarget).get('repo');
+              const r = repos.data!.find((x) => x.nome === nome);
+              if (r) importar.mutate(r);
+            }}>
+              <select name="repo" aria-label="Repositório do GitHub" required defaultValue="">
+                <option value="" disabled>Importar um repositório do GitHub…</option>
+                {repos.data.filter((r) => !ligados.has(r.nome)).map((r) => <option key={r.nome} value={r.nome}>{r.nome}{r.privado ? ' (privado)' : ''}</option>)}
+              </select>
+              <button disabled={importar.isPending}>Importar</button>
+            </form>
+          ) : <p><small><Link to="/configuracoes#github">Conecte o GitHub</Link> para importar os repositórios dos sistemas que você criou.</small></p>}
+          <details><summary>Adicionar sistema manualmente</summary><Formulario campos={camposSistema(undefined, repos.data)} onSalvar={novoSistema.mutateAsync} botao="Adicionar" /></details>
         </Secao>
       </div>
       <Secao titulo="Contratos / assinaturas">

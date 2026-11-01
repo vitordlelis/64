@@ -6,6 +6,7 @@ import { rodarSoc } from './jobs/soc.ts';
 import { rodarGatilhos } from './mensagens.ts';
 import { expirarTarefas } from './routes/tarefas.ts';
 import { rodarAgentes } from './agentes/agentes.ts';
+import { sincronizarGithub } from './github.ts';
 
 const MIN = 60_000;
 const JOBS: [string, number, () => Promise<unknown>][] = [
@@ -16,7 +17,8 @@ const JOBS: [string, number, () => Promise<unknown>][] = [
   ['soc', MIN, rodarSoc],
   ['mensagens', 15 * MIN, rodarGatilhos],
   ['expirar_tarefas', 10 * MIN, expirarTarefas],
-  ['agentes', 5000, rodarAgentes], // pedidos do admin começam em segundos
+  ['agentes', 5000, rodarAgentes],
+  ['github', 10 * MIN, () => sincronizarGithub()], // pedidos do admin começam em segundos
   ['limpeza', 24 * 60 * MIN, () => q(`delete from check_saude where checado_em < now() - interval '90 days';
     delete from evento_bruto where ocorrido_em < now() - interval '30 days'; delete from sessao where expira_em < now();`)],
 ];

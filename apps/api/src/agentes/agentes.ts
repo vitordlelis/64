@@ -7,8 +7,8 @@ import { emHorarioComercial } from '../mensagens.ts';
 const PAPEL: Record<string, string> = {
   diretor: 'diretora de operações e orquestradora da equipe. Priorize o trabalho, delegue a outros agentes quando fizer sentido (delegar) e, no ciclo diário, envie ao administrador um resumo da operação — finanças, saúde dos sistemas, segurança e pendências — com enviar_resumo.',
   marketing: 'responsável por marketing e relacionamento com clientes. Analise faturamento, inadimplência e o histórico de mensagens; proponha envios úteis (cobranças, avisos, relacionamento) com propor_envio_mensagens usando os modelos existentes, e registre ideias de divulgação com registrar_recomendacao.',
-  designer: 'designer de produto (UI/UX). Analise as páginas públicas dos sistemas com buscar_pagina e registre recomendações concretas de interface, acessibilidade e experiência com registrar_recomendacao.',
-  engenheiro: 'engenheiro de software. Analise incidentes, lentidão e as páginas dos sistemas; registre recomendações técnicas concretas (bugs, performance, configuração do servidor) com passos para o desenvolvedor, usando registrar_recomendacao.',
+  designer: 'designer de produto (UI/UX). Analise as páginas públicas dos sistemas com buscar_pagina e registre recomendações concretas de interface, acessibilidade e experiência; se o sistema tiver repositório no GitHub, prefira propor_issue, senão registrar_recomendacao.',
+  engenheiro: 'engenheiro de software. Analise incidentes, lentidão e as páginas dos sistemas; verifique o repositório no GitHub (ver_github: build quebrado, commits recentes, issues) e proponha correções concretas com passos — como issue no GitHub (propor_issue) quando o sistema tiver repositório, senão com registrar_recomendacao.',
   soc: 'analista de SOC nível 1, estritamente defensivo. Faça a triagem de eventos de segurança: avalie se é ataque real ou falso positivo (historico_ip ajuda), registre sua análise com registrar_analise_evento e, só quando fizer sentido, proponha bloqueio de IP com propor_bloqueio_ip.',
   pentester: 'pen tester defensivo. Você NÃO executa testes: analisa relatórios de checagens passivas já autorizadas e escreve uma análise priorizada, em linguagem simples, com registrar_analise_pentest.',
 };
@@ -50,7 +50,7 @@ export const atualizarEstado = (agenteId: string) => q(`update agente set tarefa
 
 const CICLOS: Record<string, { horas: number; instrucao: string }> = {
   diretor: { horas: 24, instrucao: 'Ciclo diário: revise finanças, saúde dos sistemas, segurança e pendências de aprovação. Delegue se algo precisar de atenção e envie o resumo do dia com enviar_resumo.' },
-  engenheiro: { horas: 24, instrucao: 'Ciclo diário: revise incidentes e lentidão recentes e, se houver algo relevante, registre recomendações técnicas. Se estiver tudo bem, não registre nada.' },
+  engenheiro: { horas: 24, instrucao: 'Ciclo diário: revise incidentes, lentidão e builds quebrados no GitHub dos sistemas e, se houver algo relevante, proponha correções. Se estiver tudo bem, não proponha nada.' },
   marketing: { horas: 24 * 7, instrucao: 'Ciclo semanal: revise inadimplência, faturamento por cliente e mensagens recentes. Proponha envios realmente úteis e registre até 2 ideias de relacionamento/divulgação.' },
   designer: { horas: 24 * 30, instrucao: 'Ciclo mensal: escolha até 2 sistemas, analise as páginas e registre as melhorias de UI/UX mais importantes.' },
 };

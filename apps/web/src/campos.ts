@@ -10,10 +10,13 @@ export const CAMPOS_CLIENTE: Campo[] = [
   { nome: 'status', rotulo: 'Status', tipo: 'select', obrigatorio: true, opcoes: [['ativo', 'Ativo'], ['inativo', 'Inativo']] },
 ];
 
-export const camposSistema = (clientes?: Linha[]): Campo[] => [
+// Com repos (GitHub conectado) o repositório vira uma lista; sem, campo de texto "dono/nome".
+export const camposSistema = (clientes?: Linha[], repos?: Linha[]): Campo[] => [
   ...(clientes ? [{ nome: 'cliente_id', rotulo: 'Cliente', tipo: 'select', obrigatorio: true, opcoes: clientes.map((c) => [c.id, c.nome]) } as Campo] : []),
   { nome: 'nome', rotulo: 'Nome', obrigatorio: true },
   { nome: 'url', rotulo: 'URL', tipo: 'url', obrigatorio: true },
+  repos ? { nome: 'github_repo', rotulo: 'Repositório no GitHub', tipo: 'select', opcoes: repos.map((r) => [r.nome, `${r.nome}${r.privado ? ' (privado)' : ''}`]) }
+    : { nome: 'github_repo', rotulo: 'Repositório no GitHub (dono/nome)' },
   { nome: 'health_url', rotulo: 'URL de health check (opcional)', tipo: 'url' },
   { nome: 'latencia_limite_ms', rotulo: 'Limite de latência (ms)', tipo: 'number' },
   { nome: 'hospedagem', rotulo: 'Hospedagem' },

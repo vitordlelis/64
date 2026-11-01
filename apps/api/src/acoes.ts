@@ -3,6 +3,7 @@ import { isIP } from 'node:net';
 import { q } from './db.ts';
 import { parametrosEmOrdem, type Vars } from './mensagens.ts';
 import { pentestPassivo } from './pentest.ts';
+import { gh, tokenGithub } from './github.ts';
 
 const demo = () => process.env.MODO_DEMONSTRACAO === '1';
 type Payload = Record<string, unknown>;
@@ -21,6 +22,11 @@ export const ACOES = {
   desbloquear_ip: {
     impacto: 'baixo',
     validar: (p: Payload) => typeof p.bloqueio_id === 'string',
+  },
+  abrir_issue: {
+    impacto: 'baixo',
+    validar: (p: Payload) => typeof p.sistema_id === 'string' && typeof p.titulo === 'string' && p.titulo.length > 0 && p.titulo.length <= 200
+      && typeof p.corpo === 'string' && p.corpo.length <= 20_000,
   },
   pentest_passivo: {
     impacto: 'alto',
@@ -114,6 +120,17 @@ export async function executar(t: Tarefa): Promise<object> {
   }
 
   if (t.acao_tipo === 'pentest_passivo') return pentestPassivo(t.id, p.sistema_id as string);
+
+  if (t.acao_tipo === 'abrir_issue') {
+    const [s] = await q('select github_repo from sistema where id = $1', [p.sistema_id]);
+    if (!s?.github_repo) throw new Error('sistema sem repositório do GitHub');
+    const token = await tokenGithub();
+    if (!token) throw new Error('GitHub não conectado');
+    const i = await gh(`/repos/${s.github_repo}/issues`, token, { method: 'POST', body: JSON.stringify({
+      title: p.titulo, body: `${p.corpo}\n\n---\n_Proposto por um agente do VL Command e aprovado pelo administrador._`,
+    }) });
+    return { issue: i.number, url: i.html_url };
+  }
 
   // desbloquear_ip
   return removerBloqueio(p.bloqueio_id as string);

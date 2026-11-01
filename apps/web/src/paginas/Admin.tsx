@@ -2,8 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, data, MESES, useAcao, useDados, type Linha } from '../api';
 import { Carregando, Secao, Vazio } from '../ui';
-import { Bell } from 'lucide-react';
-import { avisar } from '../feedback';
+import { Bell, FolderGit2 } from 'lucide-react';
+import { avisar, confirmar } from '../feedback';
 
 export function Notificacoes() {
   const notif = useDados<Linha[]>('/notificacoes');
@@ -73,11 +73,47 @@ export function Configuracoes() {
           </form>
         )}
       </Secao>
+      <ConexaoGithub />
       <Secao titulo="Conta e 2FA">
         <p>O sistema tem um único administrador. Para trocar senha ou o autenticador (2FA), rode no servidor:</p>
         <pre>docker compose exec app node apps/api/src/cli/criar-admin.ts seu@email.com</pre>
         <p>Isso gera um novo segredo de 2FA e encerra todas as sessões abertas.</p>
       </Secao>
     </>
+  );
+}
+
+function ConexaoGithub() {
+  const g = useDados('/github');
+  const [token, setToken] = useState('');
+  const conectar = useAcao(() => api('/github', 'PUT', { token }));
+  const desconectar = useAcao(() => api('/github', 'DELETE'));
+  return (
+    <Secao titulo="GitHub" id="github" acoes={g.data?.conectado && <span className="pill paga">conectado</span>}>
+      <Carregando q={g} />
+      {g.data?.conectado ? (
+        <div className="linha">
+          <FolderGit2 size={20} aria-hidden />
+          <span>Conectado como <strong>{g.data.login}</strong>{g.data.nome && g.data.nome !== g.data.login ? ` (${g.data.nome})` : ''}.</span>
+          <small>O VL Command verifica os repositórios ligados aos sistemas a cada 10 minutos.</small>
+          <button className="link perigo" onClick={async () => (await confirmar({ titulo: 'Desconectar o GitHub?', texto: 'O monitoramento dos repositórios para; os repositórios ligados aos sistemas continuam anotados.', acao: 'Desconectar', perigo: true })) && desconectar.mutate(undefined)}>desconectar</button>
+        </div>
+      ) : g.data && (
+        <>
+          <p>Conecte sua conta para o VL Command acompanhar os repositórios dos seus sistemas: build/testes (GitHub Actions), commits, PRs e issues. Os agentes também poderão propor issues, que só são criadas com a sua aprovação.</p>
+          <ol className="passos">
+            <li>No GitHub, abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">Settings → Developer settings → Fine-grained tokens → Generate new token</a>.</li>
+            <li>Dê um nome (ex.: <em>VL Command</em>) e uma validade. Em <strong>Repository access</strong>, escolha <em>All repositories</em> (ou só os dos seus clientes).</li>
+            <li>Em <strong>Repository permissions</strong>, marque: <em>Actions</em>: Read-only · <em>Contents</em>: Read-only · <em>Issues</em>: Read and write · <em>Pull requests</em>: Read-only. (<em>Metadata</em> já vem marcado.)</li>
+            <li>Clique em <strong>Generate token</strong>, copie o código (começa com <code>github_pat_</code>) e cole abaixo.</li>
+          </ol>
+          <form className="comando" onSubmit={(e: FormEvent) => { e.preventDefault(); conectar.mutate(undefined, { onSuccess: () => { setToken(''); avisar('GitHub conectado'); } }); }}>
+            <input type="password" autoComplete="off" aria-label="Token do GitHub" placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} />
+            <button disabled={token.trim().length < 20 || conectar.isPending}>{conectar.isPending ? 'Conectando…' : 'Conectar'}</button>
+          </form>
+          <p><small>O código fica guardado criptografado no seu computador e nunca é mostrado de novo.</small></p>
+        </>
+      )}
+    </Secao>
   );
 }

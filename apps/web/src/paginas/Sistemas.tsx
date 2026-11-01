@@ -4,13 +4,14 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { api, data, useAcao, useDados, type Linha } from '../api';
 import { camposSistema } from '../campos';
 import { Carregando, Formulario, Kpi, Secao, Status, Vazio } from '../ui';
-import { Plus, Server } from 'lucide-react';
+import { ExternalLink, FolderGit2, GitCommitHorizontal, GitPullRequest, CircleDot, Plus, RefreshCw, Server, Tag } from 'lucide-react';
 import { avisar, confirmar } from '../feedback';
 
 export function Sistemas() {
   const sistemas = useDados<Linha[]>('/sistemas');
   const clientes = useDados<Linha[]>('/clientes');
   const criar = useAcao((v: Linha) => api('/sistemas', 'POST', v), false);
+  const repos = useRepos();
   const nome = (cid: string) => clientes.data?.find((c) => c.id === cid)?.nome ?? '—';
   return (
     <>
@@ -24,15 +25,15 @@ export function Sistemas() {
           texto={clientes.data?.length ? 'Cadastre um site ou app: o monitor passa a medir disponibilidade e tempo de resposta a cada minuto.' : 'Primeiro cadastre um cliente; os sistemas ficam ligados a ele.'}
           acao={clientes.data?.length ? <a href="#novo" className="botao"><Plus size={16} aria-hidden /> Cadastrar sistema</a> : <Link to="/clientes" className="botao">Ir para Clientes</Link>} />}
         {!!sistemas.data?.length && <table>
-          <thead><tr><th>Status</th><th>Sistema</th><th>Cliente</th><th>URL</th><th>SSL vence</th><th>Domínio vence</th></tr></thead>
+          <thead><tr><th>Status</th><th>Sistema</th><th>Cliente</th><th>Build</th><th>URL</th><th>SSL vence</th><th>Domínio vence</th></tr></thead>
           <tbody>{sistemas.data?.map((s) => (
             <tr key={s.id}><td><Status s={s.status_saude} /></td><td><Link to={`/sistemas/${s.id}`}>{s.nome}</Link></td>
-              <td><Link to={`/clientes/${s.cliente_id}`}>{nome(s.cliente_id)}</Link></td><td><a href={s.url} target="_blank" rel="noreferrer">{s.url}</a></td>
+              <td><Link to={`/clientes/${s.cliente_id}`}>{nome(s.cliente_id)}</Link></td><td><CiPill s={s} /></td><td><a href={s.url} target="_blank" rel="noreferrer">{s.url}</a></td>
               <td>{data(s.ssl_expira_em)}</td><td>{data(s.dominio_expira_em)}</td></tr>
           ))}</tbody>
         </table>}
       </Secao>
-      {!!clientes.data?.length && <Secao titulo="Novo sistema" id="novo"><Formulario campos={camposSistema(clientes.data)} onSalvar={criar.mutateAsync} botao="Cadastrar" /></Secao>}
+      {!!clientes.data?.length && <Secao titulo="Novo sistema" id="novo"><Formulario campos={camposSistema(clientes.data, repos.data)} onSalvar={criar.mutateAsync} botao="Cadastrar" /></Secao>}
     </>
   );
 }
@@ -42,6 +43,7 @@ export function Sistema() {
   const sistema = useDados(`/sistemas/${id}`);
   const saude = useDados(`/sistemas/${id}/saude`, { refetchInterval: 30_000 });
   const salvar = useAcao((v: Linha) => api(`/sistemas/${id}`, 'PATCH', v), false);
+  const repos = useRepos();
   if (!sistema.data) return <Carregando q={sistema} />;
   const s = sistema.data, h = saude.data;
   const up = (v: number | null) => (v == null ? '—' : `${v}%`);
@@ -68,9 +70,10 @@ export function Sistema() {
               <tbody>{h.incidentes.map((i: Linha) => <tr key={i.id}><td>{i.tipo}</td><td>{data(i.inicio_em)}</td><td>{i.fim_em ? data(i.fim_em) : <strong className="erro">em andamento</strong>}</td><td>{i.descricao}</td></tr>)}</tbody></table>
           )}
         </Secao>
+        <PainelGithub s={s} />
         <ChaveIngestao id={s.id} />
         <PenTest s={s} />
-        <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema()} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
+        <Secao titulo="Dados e base de conhecimento"><Formulario key={s.id} campos={camposSistema(undefined, repos.data)} inicial={s} onSalvar={salvar.mutateAsync} /></Secao>
       </div>
     </>
   );
@@ -121,6 +124,55 @@ function PenTest({ s }: { s: Linha }) {
             <tbody>{r.achados.map((a: Linha, i: number) => <tr key={i}><td>{a.titulo}</td><td><span className={`pill sev-${a.severidade}`}>{a.severidade}</span></td><td><small>{a.evidencia}</small></td><td><small>{a.correcao}</small></td></tr>)}</tbody></table>
         </details>
       ))}
+    </Secao>
+  );
+}
+
+// Repositórios da conta conectada (undefined se o GitHub não estiver conectado).
+export const useRepos = () => useDados<Linha[]>('/github/repos', { staleTime: 300_000 });
+
+const CI: Linha = { success: ['passou', 'paga'], failure: ['falhou', 'vencida'], cancelled: ['cancelado', ''], timed_out: ['tempo esgotado', 'vencida'] };
+export function CiPill({ s }: { s: Linha }) {
+  if (!s.github_repo) return <small>—</small>;
+  const ci = s.github_status?.ci;
+  if (s.github_status?.erro) return <span className="pill vencida" title={s.github_status.erro}>erro</span>;
+  if (!ci) return <span className="pill">sem build</span>;
+  if (ci.status !== 'completed') return <span className="pill aguardando">rodando</span>;
+  const [t, c] = CI[ci.conclusao] ?? [ci.conclusao, ''];
+  return <a href={ci.url} target="_blank" rel="noreferrer" className={`pill ${c}`} style={{ textDecoration: 'none' }}>{t}</a>;
+}
+
+function PainelGithub({ s }: { s: Linha }) {
+  const atualizar = useAcao(() => api(`/sistemas/${s.id}/github/atualizar`, 'POST'));
+  const g = s.github_status;
+  if (!s.github_repo) return (
+    <Secao titulo="GitHub">
+      <Vazio icone={FolderGit2} titulo="Nenhum repositório ligado"
+        texto="Escolha o repositório no campo “Repositório no GitHub”, em Dados, para acompanhar build, commits, PRs e issues deste sistema."
+        acao={<Link to="/configuracoes#github">Conectar o GitHub</Link>} />
+    </Secao>
+  );
+  return (
+    <Secao titulo="GitHub" acoes={<button className="secundario" disabled={atualizar.isPending} onClick={() => atualizar.mutate(undefined)}>
+      <RefreshCw size={14} aria-hidden className={atualizar.isPending ? 'girando-svg' : ''} /> Atualizar</button>}>
+      <p className="linha">
+        <a href={g?.url ?? `https://github.com/${s.github_repo}`} target="_blank" rel="noreferrer"><FolderGit2 size={15} aria-hidden /> {s.github_repo} <ExternalLink size={12} aria-hidden /></a>
+        {g?.branch && <small>branch {g.branch}</small>}<CiPill s={s} />
+      </p>
+      {g?.erro && <p className="erro">{g.erro}</p>}
+      {!g && <p className="ajuda">Ainda não verificado. {''}Clique em Atualizar (precisa do GitHub conectado em Configurações).</p>}
+      {g?.commits && <>
+        <div className="kpis mini">
+          <div><GitPullRequest size={15} aria-hidden /> <strong>{g.prs_abertos}</strong> <small>PRs abertos</small></div>
+          <div><CircleDot size={15} aria-hidden /> <strong>{g.issues_abertas}</strong> <small>issues abertas</small></div>
+          <div><Tag size={15} aria-hidden /> <strong>{g.release?.tag ?? '—'}</strong> <small>última versão</small></div>
+        </div>
+        {g.ci && <p><small>Último build: <a href={g.ci.url} target="_blank" rel="noreferrer">{g.ci.nome}</a> no commit <code>{g.ci.commit}</code> · {data(g.ci.data)}</small></p>}
+        <ul className="lista">{g.commits.map((c: Linha) => (
+          <li key={c.sha}><GitCommitHorizontal size={15} aria-hidden /><code>{c.sha}</code><a href={c.url} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 0 }}>{c.mensagem}</a><small>{c.autor} · {data(c.data)}</small></li>
+        ))}</ul>
+      </>}
+      {s.github_atualizado_em && <p><small>Verificado em {data(s.github_atualizado_em)} · automático a cada 10 minutos.</small></p>}
     </Secao>
   );
 }
