@@ -66,7 +66,7 @@ Na página de cada sistema, o quadro **Conexões deste sistema** mostra as liga�
 
 ## Cloudflare Pages e Google Analytics (tráfego)
 Funcionam com o VL Command no seu computador: ele é quem busca os dados (nada precisa chegar até ele).
-- **Cloudflare**: Configurações → Cloudflare Pages → siga os 4 passos (token *Custom* com *Cloudflare Pages: Read* e *Account Analytics: Read*). Para ver visitas, ative **Web Analytics** em cada projeto (Metrics → Enable) e faça um novo deploy. Sites que ainda não estão em Sistemas entram com um clique.
+- **Cloudflare**: Configurações → Cloudflare Pages → siga os 4 passos (token personalizado com *Conta · Cloudflare Pages · Ler*, *Conta · Account Analytics · Ler* e *Conta · Configurações da conta · Ler*, incluindo a sua conta em Recursos da conta). Para ver visitas, ative **Web Analytics** em cada projeto (Metrics → Enable) e faça um novo deploy. Sites que ainda não estão em Sistemas entram com um clique.
 - **Google Analytics**: Configurações → Google Analytics → siga os 5 passos (projeto no Google Cloud, 2 APIs, conta de serviço com chave JSON, e-mail da conta como *Leitor* no GA).
 - A tela **Tráfego** junta todos os sites; cada sistema tem o painel com gráfico (deploys marcados), páginas, origens, aparelhos e dicas. Atualiza a cada 30 minutos.
 

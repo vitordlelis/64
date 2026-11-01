@@ -29,7 +29,7 @@ export async function cf(caminho: string, token: string, init: RequestInit = {})
 
 export async function conectarCloudflare(token: string) {
   const contas = await cf('/accounts?per_page=50', token) as J[];
-  if (!contas?.length) throw new Error('o token não dá acesso a nenhuma conta (inclua a permissão de conta "Cloudflare Pages: Read")');
+  if (!contas?.length) throw new Error('o token não enxerga nenhuma conta: inclua a permissão "Conta · Configurações da conta · Ler" e, em Recursos da conta, a sua conta');
   const dados = { conta_id: contas[0]!.id, conta_nome: contas[0]!.name };
   await cf(`/accounts/${dados.conta_id}/pages/projects`, token); // confere a permissão do Pages já na conexão
   await q(`insert into integracao (nome, segredo, dados) values ('cloudflare', $1, $2)

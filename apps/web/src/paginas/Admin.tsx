@@ -157,7 +157,7 @@ function ConexaoCloudflare() {
           <p>Conecte para ver, de cada site no Cloudflare Pages: se o último deploy foi publicado ou falhou (com aviso), o histórico de publicações e as visitas por dia, páginas, países e origens. Os sites são ligados sozinhos aos sistemas pelo repositório ou endereço.</p>
           <ol className="passos">
             <li>No Cloudflare, abra <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer">Meu perfil → API Tokens</a> e clique em <strong>Create Token</strong> → <strong>Create Custom Token</strong> (no fim da página).</li>
-            <li>Dê um nome (ex.: <em>VL Command</em>). Em <strong>Permissions</strong>, adicione: <em>Account · Cloudflare Pages · Read</em> e <em>Account · Account Analytics · Read</em>.</li>
+            <li>Dê um nome (ex.: <em>VL Command</em>). Em <strong>Permissões</strong>, adicione 3 linhas: <em>Conta · Cloudflare Pages · Ler</em>, <em>Conta · Account Analytics · Ler</em> e <em>Conta · Configurações da conta · Ler</em>. Em <strong>Recursos da conta</strong>, inclua a sua conta.</li>
             <li>Opcional, para os agentes poderem propor bloqueio de IP (sempre com sua aprovação): <em>Zone · Firewall Services · Edit</em>.</li>
             <li>Clique em <strong>Continue to summary</strong> → <strong>Create Token</strong>, copie o código e cole abaixo.</li>
           </ol>
