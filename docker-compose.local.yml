@@ -1,4 +1,4 @@
-# Só para VER o sistema no seu computador (sem domínio, sem HTTPS, com dados de demonstração).
+# VL Command no seu computador (sem domínio, sem HTTPS). No primeiro acesso você cria o seu usuário.
 #   docker compose -f docker-compose.local.yml up --build
 #   abra http://localhost:3000
 # Para apagar tudo e recomeçar: docker compose -f docker-compose.local.yml down -v
@@ -11,8 +11,15 @@ x-app: &app
     APP_KEY: chave-local-somente-para-demonstracao-123
     NODE_ENV: development   # cookie sem "Secure", pois localhost é http
     PERMITIR_DESLIGAR: "1"  # botão "Desligar sistema" no site
-    MODO_DEMONSTRACAO: "1"  # mensagens e bloqueios são simulados: nada sai para clientes reais
-    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}  # opcional, lida do arquivo .env desta pasta (agentes de IA)
+    PERMITIR_PRIMEIRO_ACESSO: "1"  # sem usuário cadastrado, a tela de login vira "criar acesso"
+    # Opcionais, lidos do arquivo .env desta pasta. Sem eles, envios/bloqueios falham com aviso claro.
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    RESEND_API_KEY: ${RESEND_API_KEY:-}
+    EMAIL_FROM: ${EMAIL_FROM:-}
+    ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+    WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+    CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
   depends_on:
     postgres: { condition: service_healthy }
 
@@ -26,7 +33,7 @@ services:
   app:
     <<: *app
     ports: ["127.0.0.1:3000:3000"]
-    command: ["sh", "-c", "node apps/api/src/migrate.ts && node apps/api/src/cli/demo.ts && node apps/api/src/server.ts"]
+    command: ["sh", "-c", "node apps/api/src/migrate.ts && node apps/api/src/cli/limpar-demo.ts && node apps/api/src/server.ts"]
 
   worker:
     <<: *app

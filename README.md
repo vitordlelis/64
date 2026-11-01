@@ -8,7 +8,7 @@ central de mensagens (e-mail/WhatsApp), SOC Nível 1, agentes de IA, pen test pa
 
 ## Só quero ver o sistema
 
-Siga [docs/rodar-localmente.md](docs/rodar-localmente.md): Docker Desktop + um comando, com dados de demonstração.
+Siga [docs/rodar-localmente.md](docs/rodar-localmente.md): Docker Desktop + um clique no atalho.
 
 ## Rodar localmente (desenvolvimento)
 

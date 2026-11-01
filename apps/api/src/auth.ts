@@ -1,6 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
+import { randomBytes } from 'node:crypto';
 import { q } from './db.ts';
-import { decifra, novoToken, sha256, verificaSenha, verificaTotp } from './crypto.ts';
+import { base32, cifra, decifra, hashSenha, novoToken, sha256, verificaSenha, verificaTotp } from './crypto.ts';
 import { registrar } from './auditoria.ts';
 
 declare module 'fastify' {
@@ -8,7 +9,7 @@ declare module 'fastify' {
 }
 
 export const COOKIE = 'vlc_sessao';
-const PUBLICAS = ['/api/auth/login', '/api/webhooks/', '/api/sonda/', '/api/ingest/', '/api/health'];
+const PUBLICAS = ['/api/auth/login', '/api/auth/primeiro-acesso', '/api/webhooks/', '/api/sonda/', '/api/ingest/', '/api/health'];
 
 // Confirmação extra (step-up) para ações de alto impacto.
 export async function confereTotp(adminId: string, codigo?: string) {
@@ -40,13 +41,33 @@ export function auth(app: FastifyInstance) {
       await registrar({ autor_tipo: 'sistema', acao: 'login_falho', contexto: { email }, ip: req.ip });
       return rep.code(401).send({ erro: 'E-mail, senha ou código inválidos' });
     }
-    const token = novoToken();
-    await q("insert into sessao (token_hash, admin_id, expira_em) values ($1, $2, now() + interval '12 hours')", [sha256(token), a.id]);
     await registrar({ autor_tipo: 'admin', autor_id: a.id, acao: 'login', ip: req.ip });
-    rep.setCookie(COOKIE, token, {
-      httpOnly: true, sameSite: 'strict', path: '/', maxAge: 12 * 3600, secure: process.env.NODE_ENV === 'production',
-    });
-    return { ok: true };
+    return abrirSessao(rep, a.id);
+  });
+
+  // Primeiro acesso (só no modo local): sem nenhum admin cadastrado, cria o administrador único com 2FA.
+  const primeiroAcessoAberto = async () =>
+    process.env.PERMITIR_PRIMEIRO_ACESSO === '1' && !(await q('select 1 from admin limit 1')).length;
+
+  app.get('/api/auth/primeiro-acesso', async () =>
+    (await primeiroAcessoAberto()) ? { disponivel: true, segredo: base32(randomBytes(20)) } : { disponivel: false });
+
+  app.post<{ Body: { email: string; senha: string; segredo: string; codigo: string } }>('/api/auth/primeiro-acesso', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    schema: { body: { type: 'object', required: ['email', 'senha', 'segredo', 'codigo'], properties: {
+      email: { type: 'string', format: 'email', maxLength: 200 }, senha: { type: 'string', minLength: 12, maxLength: 200 },
+      segredo: { type: 'string', pattern: '^[A-Z2-7]{32}$' }, codigo: { type: 'string', pattern: '^[0-9]{6}$' },
+    } } },
+  }, async (req, rep) => {
+    if (!(await primeiroAcessoAberto())) return rep.code(409).send({ erro: 'O administrador já foi criado. Faça login.' });
+    const { email, senha, segredo, codigo } = req.body;
+    // o código prova que o app autenticador foi configurado com este segredo antes de gravar
+    if (!verificaTotp(segredo, codigo)) return rep.code(400).send({ erro: 'Código do autenticador não confere. Confira a chave no app e tente com um código novo.' });
+    const [a] = await q(`insert into admin (email, senha_hash, totp_secret) select $1, $2, $3
+      where not exists (select 1 from admin) returning id`, [email.trim().toLowerCase(), await hashSenha(senha), cifra(segredo)]);
+    if (!a) return rep.code(409).send({ erro: 'O administrador já foi criado. Faça login.' });
+    await registrar({ autor_tipo: 'admin', autor_id: a.id, acao: 'admin_criado_primeiro_acesso', ip: req.ip });
+    return abrirSessao(rep, a.id);
   });
 
   app.post('/api/auth/logout', async (req, rep) => {
@@ -61,4 +82,13 @@ export function auth(app: FastifyInstance) {
     pode_desligar: process.env.PERMITIR_DESLIGAR === '1',
     modo_demonstracao: process.env.MODO_DEMONSTRACAO === '1',
   }));
+}
+
+async function abrirSessao(rep: FastifyReply, adminId: string) {
+  const token = novoToken();
+  await q("insert into sessao (token_hash, admin_id, expira_em) values ($1, $2, now() + interval '12 hours')", [sha256(token), adminId]);
+  rep.setCookie(COOKIE, token, {
+    httpOnly: true, sameSite: 'strict', path: '/', maxAge: 12 * 3600, secure: process.env.NODE_ENV === 'production',
+  });
+  return { ok: true };
 }

@@ -65,7 +65,7 @@ Cada fase termina com algo **em produção e usado de verdade**. Uma fase só co
 - **Mensagens** (`/mensagens`): 5 modelos prontos (lembrete, atraso, pagamento, renovação, domínio), editáveis, com variáveis e prévia. Gatilhos por data/evento a cada 15 min, agendamento com repetição semanal/mensal, opt-out por canal (resposta "SAIR" no WhatsApp) e horário comercial. Cada lote vira uma tarefa com a lista de destinatários e o texto final; o admin pode desligar a confirmação por modelo.
 - **WhatsApp** usa template aprovado na Meta (parâmetros na ordem das variáveis do texto); status entregue/lida chegam pelo webhook. **E-mail** (Resend) registra só "enviada".
 - **SOC N1** (`/seguranca`): cada sistema recebe uma chave de ingestão e envia `login_falho`, `http_4xx`, `http_5xx`, `req`. Regras a cada minuto (janela de 5 min): força bruta (≥10), varredura (≥20 caminhos 404), pico por IP (≥300 req), anomalia de 5xx (≥20). Evento + alerta + proposta de bloqueio de 24 h no Cloudflare.
-- **Modo demonstração** (`MODO_DEMONSTRACAO=1`, só no `docker-compose.local.yml`): mensagens e bloqueios são simulados.
+- **Modo demonstração** (`MODO_DEMONSTRACAO=1`, desligado por padrão): mensagens e bloqueios são simulados, útil só para testes.
 - Não implementado: regra de pico global comparando com a média histórica (só pico por IP).
 
 ## Notas da implementação da Fase 3

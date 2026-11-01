@@ -23,11 +23,12 @@ export function Inicio() {
       )}
       <div className="grid2">
         <Secao titulo="Sistemas que precisam de atenção">
-          {problemas.length === 0 ? <p>Tudo no ar.</p> : (
+          {!s?.sistemas.length ? <p>Nenhum sistema cadastrado. <Link to="/clientes">Cadastre um cliente</Link> e depois os sistemas dele.</p> : problemas.length === 0 ? <p>Tudo no ar.</p> : (
             <ul className="lista">{problemas.map((x: Linha) => <li key={x.id}><Status s={x.status_saude} /> <Link to={`/sistemas/${x.id}`}>{x.nome}</Link> — {x.cliente_nome}</li>)}</ul>
           )}
         </Secao>
         <Secao titulo="Notificações recentes" acoes={<Link to="/notificacoes">ver todas</Link>}>
+          {notif.data && !notif.data.length && <p>Nenhuma notificação.</p>}
           <ul className="lista">{notif.data?.slice(0, 6).map((n) => (
             <li key={n.id} className={n.severidade}>{n.link ? <Link to={n.link}>{n.titulo}</Link> : n.titulo} <small>{data(n.criado_em)}</small></li>
           ))}</ul>

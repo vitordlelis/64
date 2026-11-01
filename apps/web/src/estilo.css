@@ -88,3 +88,4 @@ ol.passos li { margin: .4rem 0; }
 .voz { display: flex; flex-direction: column; gap: .4rem; margin: .75rem 0; }
 .voz button { font-size: 1.1rem; }
 @media (max-width: 1000px) { .escritorio { grid-template-columns: 1fr; height: auto; } .escritorio .cena { height: 60vh; } }
+.login .form { width: min(420px, 92vw); } code.chave { font-size: 1.1rem; letter-spacing: .05em; user-select: all; }

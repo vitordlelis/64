@@ -40,6 +40,13 @@ test('login exige senha e TOTP; rotas privadas exigem sessão', async () => {
   assert.equal((await req('GET', '/api/auth/me')).body.email, 'adm@vl.com');
   assert.equal((await req('GET', '/api/auth/me')).body.pode_desligar, false);
   assert.equal((await req('POST', '/api/sistema/desligar')).status, 404); // fora do modo local o botão não existe
+  // primeiro acesso: fechado quando a flag está desligada e quando já existe admin
+  assert.equal((await req('GET', '/api/auth/primeiro-acesso')).body.disponivel, false);
+  process.env.PERMITIR_PRIMEIRO_ACESSO = '1';
+  assert.equal((await req('GET', '/api/auth/primeiro-acesso')).body.disponivel, false); // já existe admin
+  const s = base32(Buffer.from('outro-segredo-qualqu')) // 20 bytes = 32 caracteres;
+  assert.equal((await req('POST', '/api/auth/primeiro-acesso', { email: 'intruso@x.com', senha: 'senha-forte-123', segredo: s, codigo: totp(s) })).status, 409);
+  delete process.env.PERMITIR_PRIMEIRO_ACESSO;
   const [falho] = await q("select * from log_auditoria where acao = 'login_falho'");
   assert.ok(falho);
 });
