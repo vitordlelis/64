@@ -46,6 +46,10 @@ do {
     Write-Host 'Ligando o VL Command (na primeira vez demora alguns minutos)...'
     docker @compose up -d --build
     if ($LASTEXITCODE -ne 0) { Write-Host 'Falha ao ligar. Copie as mensagens acima e envie ao suporte.'; Read-Host 'Enter para fechar'; exit 1 }
+    # Cada atualização gera uma imagem nova; apaga as versões antigas sem uso e o cache de build com mais de 7 dias
+    # (não toca no banco de dados, que fica num volume separado).
+    docker image prune -f *> $null
+    docker builder prune -f --filter 'until=168h' *> $null
 
     while (-not (SiteNoAr)) { Start-Sleep 2 }
     if ($primeiraVez) { Start-Process 'http://localhost:3000'; $primeiraVez = $false }  # ao reiniciar, a aba aberta recarrega sozinha
