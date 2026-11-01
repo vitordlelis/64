@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, data, MESES, useAcao, useDados, type Linha } from '../api';
-import { Carregando, Secao } from '../ui';
+import { Carregando, Secao, Vazio } from '../ui';
+import { Bell } from 'lucide-react';
+import { avisar } from '../feedback';
 
 export function Notificacoes() {
   const notif = useDados<Linha[]>('/notificacoes');
@@ -12,6 +14,7 @@ export function Notificacoes() {
       <header className="titulo"><h1>Notificações</h1><button onClick={() => todas.mutate(undefined)}>Marcar todas como lidas</button></header>
       <Carregando q={notif} />
       <Secao titulo="Recentes">
+        {notif.data && !notif.data.length && <Vazio icone={Bell} titulo="Nenhuma notificação" texto="Quedas, pagamentos, alertas de segurança e pedidos de aprovação aparecem aqui." />}
         <ul className="lista">{notif.data?.map((n) => (
           <li key={n.id} className={`${n.severidade} ${n.lida_em ? 'lida' : ''}`}>
             <span className={`pill ${n.severidade}`}>{n.severidade}</span> {n.link ? <Link to={n.link}>{n.titulo}</Link> : n.titulo} <small>{data(n.criado_em)}</small>
@@ -63,7 +66,7 @@ export function Configuracoes() {
           <form key={ano} className="form metas" onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
-            salvar.mutate(MESES.map((_, i) => Math.round(Number(fd.get(`m${i}`) || 0) * 100)), { onSuccess: () => alert('Metas salvas') });
+            salvar.mutate(MESES.map((_, i) => Math.round(Number(fd.get(`m${i}`) || 0) * 100)), { onSuccess: () => avisar('Metas salvas') });
           }}>
             {MESES.map((m, i) => <label key={m}>{m} (R$)<input name={`m${i}`} type="number" step="0.01" min="0" defaultValue={(valor(i) / 100).toFixed(2)} /></label>)}
             <div><button disabled={salvar.isPending}>Salvar metas</button></div>

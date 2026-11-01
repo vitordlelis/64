@@ -17,6 +17,7 @@ import { Seguranca } from './paginas/Seguranca';
 import { Agentes } from './paginas/Agentes';
 const Escritorio = lazy(() => import('./paginas/Escritorio')); // three.js só carrega nesta tela
 const Stack = lazy(() => import('./paginas/Stack'));
+import { Feedback } from './feedback';
 import './index.css';
 
 // Brilho dos cartões: informa ao cartão sob o mouse onde o cursor está (o CSS desenha a luz).
@@ -57,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
           </Route>
         </Routes>
       </BrowserRouter>
+      <Feedback />
     </QueryClientProvider>
   </StrictMode>,
 );

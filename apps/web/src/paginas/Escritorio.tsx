@@ -5,6 +5,7 @@ import { Html, OrbitControls } from '@react-three/drei';
 import { CanvasTexture, SRGBColorSpace, type Group, type Mesh } from 'three';
 import { api, brl, useAcao, useDados, type Linha } from '../api';
 import { ESTADO, FUNCAO, useComando } from './Agentes';
+import { confirmar } from '../feedback';
 
 const COR: Linha = { diretor: '#7c3aed', marketing: '#db2777', designer: '#f59e0b', engenheiro: '#2563eb', soc: '#16a34a', pentester: '#475569' };
 const MONITOR: Linha = { trabalhando: '#38bdf8', aguardando: '#fbbf24', ocioso: '#1e293b' };
@@ -111,7 +112,7 @@ export default function Escritorio() {
       const props = pendentes.data?.filter((t) => t.agente_id === atual?.id) ?? [];
       if (props.length !== 1) return falar(props.length ? 'Há mais de uma proposta. Aprove pela tela de aprovações.' : 'Não há proposta pendente para confirmar.');
       if (props[0]!.impacto === 'alto') return falar('Essa ação é de alto impacto e precisa do código do autenticador na tela de aprovações.');
-      if (confirm(`Aprovar "${props[0]!.titulo}"?`)) aprovar.mutate(props[0]!.id, { onSuccess: () => falar('Aprovado.') });
+      if (await confirmar({ titulo: `Aprovar "${props[0]!.titulo}"?`, acao: 'Aprovar' })) aprovar.mutate(props[0]!.id, { onSuccess: () => falar('Aprovado.') });
       return;
     }
     const alvo = lista.find((a) => a.funcao !== 'pentester' && f.includes(semAcento(a.nome))) ?? atual ?? lista.find((a) => a.funcao === 'diretor');

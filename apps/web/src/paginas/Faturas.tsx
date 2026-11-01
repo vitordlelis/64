@@ -1,11 +1,13 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, brl, data, useAcao, useDados, hoje, type Linha } from '../api';
-import { Carregando, Formulario, Secao } from '../ui';
+import { Carregando, Formulario, Secao, Vazio } from '../ui';
+import { Receipt } from 'lucide-react';
+import { confirmar } from '../feedback';
 
 export function TabelaFaturas({ faturas, mostrarCliente = true }: { faturas: Linha[]; mostrarCliente?: boolean }) {
   const pagar = useAcao((id: string) => api(`/faturas/${id}/pagar`, 'POST'));
   const cancelar = useAcao((id: string) => api(`/faturas/${id}/cancelar`, 'POST'));
-  if (!faturas.length) return <p>Nenhuma fatura.</p>;
+  if (!faturas.length) return <Vazio icone={Receipt} titulo="Nenhuma fatura aqui" texto="As mensalidades são geradas automaticamente a partir dos contratos; faturas avulsas você cria abaixo." />;
   return (
     <table>
       <thead><tr>{mostrarCliente && <th>Cliente</th>}<th>Tipo</th><th>Competência</th><th>Vencimento</th><th className="num">Valor</th><th>Status</th><th>Ações</th></tr></thead>
@@ -17,8 +19,8 @@ export function TabelaFaturas({ faturas, mostrarCliente = true }: { faturas: Lin
           <td className="acoes">
             {f.link_pagamento && <a href={f.link_pagamento} target="_blank" rel="noreferrer">link</a>}
             {['aberta', 'vencida'].includes(f.status) && <>
-              <button className="link" onClick={() => confirm(`Marcar ${brl(f.valor_cent)} como pago?`) && pagar.mutate(f.id)}>marcar paga</button>
-              <button className="link perigo" onClick={() => confirm('Cancelar esta fatura? A cobrança no Asaas também será cancelada.') && cancelar.mutate(f.id)}>cancelar</button>
+              <button className="link" onClick={async () => (await confirmar({ titulo: `Marcar ${brl(f.valor_cent)} como pago?`, texto: f.cliente_nome ? `Fatura de ${f.cliente_nome}.` : undefined, acao: 'Marcar como paga' })) && pagar.mutate(f.id)}>marcar paga</button>
+              <button className="link perigo" onClick={async () => (await confirmar({ titulo: 'Cancelar esta fatura?', texto: 'A cobrança no Asaas também será cancelada.', acao: 'Cancelar fatura', perigo: true })) && cancelar.mutate(f.id)}>cancelar</button>
             </>}
           </td>
         </tr>

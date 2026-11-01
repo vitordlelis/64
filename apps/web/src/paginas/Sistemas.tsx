@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, data, useAcao, useDados, type Linha } from '../api';
 import { camposSistema } from '../campos';
-import { Carregando, Formulario, Kpi, Secao, Status } from '../ui';
+import { Carregando, Formulario, Kpi, Secao, Status, Vazio } from '../ui';
+import { Plus, Server } from 'lucide-react';
+import { avisar, confirmar } from '../feedback';
 
 export function Sistemas() {
   const sistemas = useDados<Linha[]>('/sistemas');
@@ -12,19 +14,25 @@ export function Sistemas() {
   const nome = (cid: string) => clientes.data?.find((c) => c.id === cid)?.nome ?? '—';
   return (
     <>
-      <h1>Sistemas</h1>
-      <Secao titulo="Lista">
+      <header className="titulo">
+        <h1>Sistemas</h1>
+        {!!clientes.data?.length && <a href="#novo" className="botao"><Plus size={16} aria-hidden /> Novo sistema</a>}
+      </header>
+      <Secao titulo={`Lista${sistemas.data?.length ? ` · ${sistemas.data.length}` : ''}`}>
         <Carregando q={sistemas} />
-        <table>
+        {sistemas.data && !sistemas.data.length && <Vazio icone={Server} titulo="Nenhum sistema monitorado"
+          texto={clientes.data?.length ? 'Cadastre um site ou app: o monitor passa a medir disponibilidade e tempo de resposta a cada minuto.' : 'Primeiro cadastre um cliente; os sistemas ficam ligados a ele.'}
+          acao={clientes.data?.length ? <a href="#novo" className="botao"><Plus size={16} aria-hidden /> Cadastrar sistema</a> : <Link to="/clientes" className="botao">Ir para Clientes</Link>} />}
+        {!!sistemas.data?.length && <table>
           <thead><tr><th>Status</th><th>Sistema</th><th>Cliente</th><th>URL</th><th>SSL vence</th><th>Domínio vence</th></tr></thead>
           <tbody>{sistemas.data?.map((s) => (
             <tr key={s.id}><td><Status s={s.status_saude} /></td><td><Link to={`/sistemas/${s.id}`}>{s.nome}</Link></td>
               <td><Link to={`/clientes/${s.cliente_id}`}>{nome(s.cliente_id)}</Link></td><td><a href={s.url} target="_blank" rel="noreferrer">{s.url}</a></td>
               <td>{data(s.ssl_expira_em)}</td><td>{data(s.dominio_expira_em)}</td></tr>
           ))}</tbody>
-        </table>
+        </table>}
       </Secao>
-      {clientes.data && <Secao titulo="Novo sistema"><Formulario campos={camposSistema(clientes.data)} onSalvar={criar.mutateAsync} botao="Cadastrar" /></Secao>}
+      {!!clientes.data?.length && <Secao titulo="Novo sistema" id="novo"><Formulario campos={camposSistema(clientes.data)} onSalvar={criar.mutateAsync} botao="Cadastrar" /></Secao>}
     </>
   );
 }
@@ -55,7 +63,7 @@ export function Sistema() {
       </Secao>
       <div className="grid2">
         <Secao titulo="Incidentes">
-          {!h?.incidentes.length ? <p>Nenhum incidente.</p> : (
+          {!h?.incidentes.length ? <Vazio icone={Server} titulo="Nenhum incidente" texto="Nenhuma queda ou lentidão registrada para este sistema." /> : (
             <table><thead><tr><th>Tipo</th><th>Início</th><th>Fim</th><th>Descrição</th></tr></thead>
               <tbody>{h.incidentes.map((i: Linha) => <tr key={i.id}><td>{i.tipo}</td><td>{data(i.inicio_em)}</td><td>{i.fim_em ? data(i.fim_em) : <strong className="erro">em andamento</strong>}</td><td>{i.descricao}</td></tr>)}</tbody></table>
           )}
@@ -79,7 +87,7 @@ function ChaveIngestao({ id }: { id: string }) {
   return (
     <Secao titulo="Segurança: envio de eventos">
       <p className="ajuda">O sistema do cliente envia eventos (login falho, 4xx, 5xx) para o SOC detectar ataques. Gerar uma nova chave invalida a anterior.</p>
-      <button onClick={() => (!chave || confirm('Gerar outra chave? A atual deixa de funcionar.')) && gerar.mutate(undefined)}>Gerar chave de ingestão</button>
+      <button onClick={async () => (!chave || await confirmar({ titulo: 'Gerar outra chave?', texto: 'A chave atual deixa de funcionar imediatamente.', acao: 'Gerar nova chave', perigo: true })) && gerar.mutate(undefined)}>Gerar chave de ingestão</button>
       {chave && <p role="status"><strong>Copie agora, ela não será mostrada de novo:</strong> <code>{chave}</code></p>}
       <pre>{exemplo}</pre>
     </Secao>

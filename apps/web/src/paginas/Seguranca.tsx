@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, data, useAcao, useDados, type Linha } from '../api';
-import { Carregando, Formulario, Secao } from '../ui';
+import { Carregando, Formulario, Secao, Vazio } from '../ui';
+import { ShieldCheck } from 'lucide-react';
+import { confirmar } from '../feedback';
 
 const TIPO: Linha = { forca_bruta: 'Força bruta no login', pico_requisicoes: 'Pico de requisições', varredura: 'Varredura de caminhos',
   anomalia_erros: 'Anomalia de erros 5xx', pentest_achado: 'Achado de pen test', outro: 'Outro' };
@@ -25,7 +27,7 @@ export function Seguranca() {
       <p className="ajuda">Somente defensivo e somente nos sistemas da VL Systems. Os sistemas enviam eventos com a chave gerada na página de cada sistema.</p>
       <Secao titulo="Linha do tempo de eventos">
         <Carregando q={eventos} />
-        {eventos.data && !eventos.data.length && <p>Nenhum evento.</p>}
+        {eventos.data && !eventos.data.length && <Vazio icone={ShieldCheck} titulo="Nenhum evento de segurança" texto="Gere a chave de ingestão na página de cada sistema para o SOC começar a analisar os acessos." />}
         <table>
           <thead><tr><th>Quando</th><th>Sistema</th><th>O que houve</th><th>Severidade</th><th>IP</th><th>Recomendação</th><th>Status</th></tr></thead>
           <tbody>{eventos.data?.map((e) => (
@@ -46,7 +48,7 @@ export function Seguranca() {
             <table><thead><tr><th>IP</th><th>Sistema</th><th>Expira</th><th></th></tr></thead>
               <tbody>{ativos.map((b) => (
                 <tr key={b.id}><td><code>{b.ip}</code></td><td>{b.sistema_nome}</td><td>{data(b.expira_em)}</td>
-                  <td><button className="link" onClick={() => confirm(`Desbloquear ${b.ip}?`) && tarefa.mutate({ acao_tipo: 'desbloquear_ip', acao_payload: { bloqueio_id: b.id }, titulo: `Desbloquear IP ${b.ip}`, sistema_id: b.sistema_id })}>desbloquear</button></td></tr>
+                  <td><button className="link" onClick={async () => (await confirmar({ titulo: `Desbloquear ${b.ip}?`, acao: 'Desbloquear' })) && tarefa.mutate({ acao_tipo: 'desbloquear_ip', acao_payload: { bloqueio_id: b.id }, titulo: `Desbloquear IP ${b.ip}`, sistema_id: b.sistema_id })}>desbloquear</button></td></tr>
               ))}</tbody></table>
           )}
         </Secao>

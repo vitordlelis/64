@@ -16,7 +16,7 @@ function PrimeiroAcesso({ segredo }: { segredo: string }) {
   }
   return (
     <form className="card form" onSubmit={criar}>
-      <h1>Bem-vindo ao VL Command</h1>
+      <div className="login-marca"><span className="marca grande">VL</span><h1>Bem-vindo ao VL Command</h1></div>
       <p>Crie o seu acesso de administrador. Ele é único e protegido por senha + código do celular.</p>
       <label>Seu e-mail<input name="email" type="email" autoComplete="username" required /></label>
       <label>Senha (mínimo 12 caracteres)<input name="senha" type="password" autoComplete="new-password" minLength={12} required /></label>
@@ -47,7 +47,7 @@ export function Login() {
     <main className="login">
       {primeiro.data?.disponivel ? <PrimeiroAcesso segredo={primeiro.data.segredo!} /> : (
         <form className="card form" onSubmit={entrar}>
-          <h1>VL Command</h1>
+          <div className="login-marca"><span className="marca grande">VL</span><h1>VL Command</h1><p>Central de gestão da VL Systems</p></div>
           <label>E-mail<input name="email" type="email" autoComplete="username" required /></label>
           <label>Senha<input name="senha" type="password" autoComplete="current-password" required /></label>
           <label>Código do autenticador<input name="codigo" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required /></label>

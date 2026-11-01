@@ -1,26 +1,33 @@
 import { Link, useParams } from 'react-router-dom';
 import { api, brl, data, hoje, useAcao, useDados, type Linha } from '../api';
 import { CAMPOS_CLIENTE, camposAssinatura, camposSistema } from '../campos';
-import { Carregando, Formulario, Secao, Status } from '../ui';
+import { Carregando, Formulario, Secao, Status, Vazio } from '../ui';
+import { Plus, Users } from 'lucide-react';
 import { TabelaFaturas } from './Faturas';
+import { confirmar } from '../feedback';
 
 export function Clientes() {
   const clientes = useDados<Linha[]>('/clientes');
   const criar = useAcao((v: Linha) => api('/clientes', 'POST', v), false);
   return (
     <>
-      <h1>Clientes</h1>
-      <Secao titulo="Lista">
+      <header className="titulo">
+        <h1>Clientes</h1>
+        <a href="#novo" className="botao"><Plus size={16} aria-hidden /> Novo cliente</a>
+      </header>
+      <Secao titulo={`Lista${clientes.data?.length ? ` · ${clientes.data.length}` : ''}`}>
         <Carregando q={clientes} />
-        <table>
+        {clientes.data && !clientes.data.length && <Vazio icone={Users} titulo="Nenhum cliente ainda" texto="Cadastre o primeiro cliente; depois você adiciona os sistemas e o contrato dele."
+          acao={<a href="#novo" className="botao"><Plus size={16} aria-hidden /> Cadastrar cliente</a>} />}
+        {!!clientes.data?.length && <table>
           <thead><tr><th>Nome</th><th>Documento</th><th>Contato</th><th>Status</th></tr></thead>
           <tbody>{clientes.data?.map((c) => (
             <tr key={c.id}><td><Link to={`/clientes/${c.id}`}>{c.nome}</Link></td><td>{c.documento ?? '—'}</td>
-              <td>{[c.email, c.whatsapp].filter(Boolean).join(' · ') || '—'}</td><td>{c.status}</td></tr>
+              <td>{[c.email, c.whatsapp].filter(Boolean).join(' · ') || '—'}</td><td><span className={`pill ${c.status === 'ativo' ? 'paga' : ''}`}>{c.status}</span></td></tr>
           ))}</tbody>
-        </table>
+        </table>}
       </Secao>
-      <Secao titulo="Novo cliente"><Formulario campos={CAMPOS_CLIENTE} onSalvar={criar.mutateAsync} botao="Cadastrar" /></Secao>
+      <Secao titulo="Novo cliente" id="novo"><Formulario campos={CAMPOS_CLIENTE} onSalvar={criar.mutateAsync} botao="Cadastrar" /></Secao>
     </>
   );
 }
@@ -61,8 +68,8 @@ export function Cliente() {
               <td>{a.ciclo}</td><td>dia {a.dia_vencimento}</td><td>{data(a.inicio_em)}</td>
               <td>{a.status}{a.cancelado_em && ` em ${data(a.cancelado_em)}`}</td>
               <td className="acoes">
-                {a.valor_projeto_cent > 0 && <button className="link" onClick={() => confirm(`Gerar fatura do projeto de ${brl(a.valor_projeto_cent)} com vencimento em 7 dias?`) && faturarProjeto.mutate(a)}>faturar projeto</button>}
-                {a.status !== 'cancelada' && <button className="link perigo" onClick={() => confirm(`Cancelar a assinatura a partir de hoje (${data(hoje())})?`) && cancelar.mutate(a.id)}>cancelar</button>}
+                {a.valor_projeto_cent > 0 && <button className="link" onClick={async () => (await confirmar({ titulo: `Gerar fatura do projeto de ${brl(a.valor_projeto_cent)}?`, texto: 'Vencimento em 7 dias.', acao: 'Gerar fatura' })) && faturarProjeto.mutate(a)}>faturar projeto</button>}
+                {a.status !== 'cancelada' && <button className="link perigo" onClick={async () => (await confirmar({ titulo: 'Cancelar esta assinatura?', texto: `O cancelamento vale a partir de hoje (${data(hoje())}) e entra no cálculo de churn.`, acao: 'Cancelar assinatura', perigo: true })) && cancelar.mutate(a.id)}>cancelar</button>}
               </td>
             </tr>
           ))}</tbody>

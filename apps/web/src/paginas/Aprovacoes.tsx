@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, data, useAcao, useDados, type Linha } from '../api';
-import { Carregando, Secao } from '../ui';
+import { Carregando, Secao, Vazio } from '../ui';
+import { CircleCheck } from 'lucide-react';
+import { perguntar } from '../feedback';
 
 const ORIGEM: Linha = { evento: 'automático', admin_texto: 'você', admin_voz: 'você (voz)', autonoma: 'iniciativa do agente', diretor: 'pedido da diretora' };
 
@@ -41,7 +43,7 @@ function Cartao({ t }: { t: Linha }) {
         <div className="acoes decisao">
           {t.impacto === 'alto' && <label>Código do autenticador<input value={codigo} onChange={(e) => setCodigo(e.target.value)} inputMode="numeric" maxLength={6} /></label>}
           <button onClick={() => aprovar.mutate(undefined)} disabled={aprovar.isPending}>Aprovar e executar</button>
-          <button className="secundario" onClick={() => { const m = prompt('Motivo da rejeição (opcional):'); if (m !== null) rejeitar.mutate(m); }}>Rejeitar</button>
+          <button className="secundario" onClick={async () => { const m = await perguntar({ titulo: 'Rejeitar esta proposta?', texto: 'Nada será executado.', rotulo: 'Motivo (opcional)', placeholder: 'Ex.: agora não é o momento', acao: 'Rejeitar' }); if (m !== null) rejeitar.mutate(m); }}>Rejeitar</button>
         </div>
       )}
     </section>
@@ -57,7 +59,7 @@ export function Aprovacoes() {
       <h1>Aprovações</h1>
       <p className="ajuda">Nada que tenha efeito (mensagens, bloqueios, ações dos agentes) acontece sem a sua aprovação aqui. Ações de alto impacto pedem o código do autenticador.</p>
       <Carregando q={tarefas} />
-      {tarefas.data && !aguardando.length && <Secao titulo="Aguardando você"><p>Nada pendente. 🎉</p></Secao>}
+      {tarefas.data && !aguardando.length && <Secao titulo="Aguardando você"><Vazio icone={CircleCheck} titulo="Tudo em dia" texto="Quando um agente, o SOC ou uma automação propuser algo, aparece aqui para você aprovar ou rejeitar." /></Secao>}
       {aguardando.map((t) => <Cartao key={t.id} t={t} />)}
       {resto.length > 0 && (
         <Secao titulo="Histórico">

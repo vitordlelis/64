@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
+import { avisar } from './feedback';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Linha = Record<string, any>;
@@ -20,10 +21,10 @@ export const useDados = <T = Linha>(url: string, opts: Partial<UseQueryOptions<T
   useQuery<T>({ queryKey: [url], queryFn: () => api<T>(url), ...opts });
 
 // Qualquer escrita invalida todas as consultas: simples e sempre consistente.
-// Botões alertam o erro; formulários (alertar = false) mostram o erro no próprio formulário.
+// Botões mostram o erro num aviso flutuante; formulários (alertar = false) mostram o erro no próprio formulário.
 export function useAcao<A>(fn: (a: A) => Promise<unknown>, alertar = true) {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries(), onError: (e) => alertar && alert(e.message) });
+  return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries(), onError: (e) => alertar && avisar(e.message, 'erro') });
 }
 
 export const brl = (cent: number | null | undefined) =>
