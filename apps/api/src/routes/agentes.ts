@@ -22,9 +22,10 @@ export function agentes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>('/api/agentes/:id/atividades', { schema: { params: uuid } },
     (req) => q('select * from atividade_agente where agente_id = $1 order by id desc limit 50', [req.params.id]));
 
-  app.patch<{ Params: { id: string }; Body: { ativo?: boolean; modelo?: string; teto_custo_dia_cent?: number } }>('/api/agentes/:id', {
+  app.patch<{ Params: { id: string }; Body: { ativo?: boolean; modelo?: string; teto_custo_dia_cent?: number; aparencia?: Record<string, string> } }>('/api/agentes/:id', {
     schema: { params: uuid, body: { type: 'object', minProperties: 1, additionalProperties: false, properties: {
       ativo: { type: 'boolean' }, modelo: { enum: [...MODELOS] }, teto_custo_dia_cent: { type: 'integer', minimum: 0, maximum: 100_000 },
+      aparencia: { type: 'object', additionalProperties: false, properties: { luz: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$' }, corpo: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$' } } },
     } } },
   }, async (req, rep) => {
     const ks = Object.keys(req.body);

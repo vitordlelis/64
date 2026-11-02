@@ -155,6 +155,20 @@ export function Layout() {
   const me = useDados('/auth/me');
   const notif = useDados<Linha[]>('/notificacoes', { refetchInterval: 30_000 });
   const naoLidas = notif.data?.filter((n) => !n.lida_em).length ?? 0;
+  // Celular: tabelas viram cartões; cada célula recebe o nome da sua coluna (data-rotulo) para aparecer ao lado do valor.
+  useEffect(() => {
+    let pedido = 0;
+    const rotular = () => document.querySelectorAll('main.pagina table').forEach((t) => {
+      const nomes = [...t.querySelectorAll('thead th')].map((th) => th.textContent?.trim() ?? '');
+      t.querySelectorAll('tbody tr').forEach((tr) => [...tr.children].forEach((td, i) => {
+        if (td.getAttribute('data-rotulo') !== nomes[i]) td.setAttribute('data-rotulo', nomes[i] ?? '');
+      }));
+    });
+    rotular();
+    const obs = new MutationObserver(() => { cancelAnimationFrame(pedido); pedido = requestAnimationFrame(rotular); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    return () => { obs.disconnect(); cancelAnimationFrame(pedido); };
+  }, []);
   // Links com #seção (ex.: /sistemas/x#dados): a seção só existe depois que os dados carregam, então tenta por até 3 s.
   useEffect(() => {
     if (!local.hash) return;

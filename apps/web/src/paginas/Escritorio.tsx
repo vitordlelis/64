@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { api, useAcao, useDados, type Linha } from '../api';
-import { Cena } from './EscritorioCena';
+import { Cena, luzDe, type Foco } from './EscritorioCena';
+import { Eye, Keyboard, Monitor, RotateCcw } from 'lucide-react';
 import { ESTADO, FUNCAO, useComando } from './Agentes';
 import { confirmar } from '../feedback';
 
@@ -24,6 +25,7 @@ export default function Escritorio() {
   const fin = useDados('/financeiro', { refetchInterval: 60_000 });
   const saude = useDados('/saude', { refetchInterval: 60_000 });
   const [sel, setSel] = useState<string | null>(null);
+  const [foco, setFoco] = useState<Foco>(null);
   const [texto, setTexto] = useState('');
   const [ouvindo, setOuvindo] = useState(false);
   const [ouvido, setOuvido] = useState('');
@@ -64,10 +66,22 @@ export default function Escritorio() {
 
   return (
     <div className="escritorio">
-      <div className="cena" aria-hidden>
-        <Canvas shadows dpr={[1, 1.75]} camera={{ position: [0, 5.6, 14.5], fov: 50 }} onPointerMissed={() => setSel(null)}>
-          <Cena lista={lista} sel={sel} setSel={setSel} fin={fin.data} saude={saude.data} />
-        </Canvas>
+      <div className="cena">
+        <div className="cena-3d" aria-hidden>
+          <Canvas shadows dpr={[1, 1.75]} camera={{ position: [0, 5.6, 14.5], fov: 50 }} onPointerMissed={() => setSel(null)}>
+            <Cena lista={lista} sel={sel} setSel={setSel} fin={fin.data} saude={saude.data} foco={foco} setFoco={setFoco} />
+          </Canvas>
+        </div>
+        <div className="cena-ui" role="toolbar" aria-label="Câmera do escritório">
+          <button className={!foco ? 'ativo' : ''} onClick={() => setFoco(null)}><Eye size={15} aria-hidden /> Visão geral</button>
+          <button className={foco === 'teloes' ? 'ativo' : ''} onClick={() => setFoco('teloes')}><Monitor size={15} aria-hidden /> Telões</button>
+          {(['metricas', 'agentes', 'perf'] as const).map((k, i) => (
+            <button key={k} className={foco === k ? 'ativo' : ''} onClick={() => setFoco(k)}>{['Métricas', 'Agentes', 'Performance'][i]}</button>
+          ))}
+          <button className={foco === 'marca' ? 'ativo' : ''} onClick={() => setFoco('marca')}>Marca</button>
+          {foco && <button onClick={() => setFoco(null)} aria-label="Voltar à visão geral"><RotateCcw size={15} aria-hidden /> Voltar</button>}
+        </div>
+        <p className="cena-dica"><Keyboard size={13} aria-hidden /> Arraste para girar · botão direito ou 2 dedos para mover · roda ou pinça para aproximar · WASD/setas para andar · clique num telão ou agente para focar</p>
       </div>
 
       <aside className="painel card">
@@ -93,14 +107,49 @@ export default function Escritorio() {
             {atual.tarefa_atual && <p>Agora: {atual.tarefa_atual}</p>}
             {atual.aguardando > 0 && <p><Link to="/aprovacoes">{atual.aguardando} proposta(s) aguardando você →</Link></p>}
             {atual.ultima && <p className="ultima">{atual.ultima.erro ? <span className="erro">{atual.ultima.erro}</span> : atual.ultima.resumo}</p>}
+            <Personalizar a={atual} />
           </section>
-        ) : <p className="ajuda">Clique em um agente para ver o que está fazendo. Arraste para girar a câmera; role para aproximar.</p>}
+        ) : <p className="ajuda">Clique em um agente para ver o que está fazendo e personalizar a aparência dele.</p>}
 
         {/* versão em texto da cena, para leitores de tela */}
         <ul className="lista">{lista.map((a) => (
-          <li key={a.id}><button className="link" onClick={() => setSel(a.id)}>{a.nome}</button> <small>{a.ativo ? ESTADO[a.estado] : 'Pausado'}</small></li>
+          <li key={a.id}><span className="dot" style={{ background: luzDe(a), boxShadow: `0 0 8px ${luzDe(a)}` }} aria-hidden /><button className="link" onClick={() => { setSel(a.id); setFoco(`agente:${a.id}`); }}>{a.nome}</button> <small>{a.ativo ? ESTADO[a.estado] : 'Pausado'}</small></li>
         ))}</ul>
       </aside>
     </div>
+  );
+}
+
+const LUZES = ['#a78bfa', '#f472b6', '#fbbf24', '#60a5fa', '#34d399', '#94a3b8', '#f87171', '#22d3ee', '#ff7a1a', '#ffffff'];
+const CORPOS = ['#e8ebf0', '#1f2430', '#9ca3af', '#d4af37', '#b45309', '#1e3a8a', '#7f1d1d', '#065f46'];
+
+function Cores({ rotulo, cores, valor, escolher }: { rotulo: string; cores: string[]; valor: string; escolher: (c: string, depois?: boolean) => void }) {
+  return (
+    <div className="cores">
+      <span>{rotulo}</span>
+      <div role="radiogroup" aria-label={rotulo}>
+        {cores.map((c) => <button key={c} role="radio" aria-checked={valor === c} aria-label={c} className={`amostra ${valor === c ? 'sel' : ''}`} style={{ background: c }} onClick={() => escolher(c)} />)}
+        <label className="amostra outra" title="Outra cor"><input type="color" defaultValue={valor} aria-label={`${rotulo}: outra cor`} onChange={(e) => escolher(e.target.value, true)} /></label>
+      </div>
+    </div>
+  );
+}
+
+// Cor das luzes (olhos, cadeira, telão) e do corpo do robô; salva na hora (o seletor livre espera parar de arrastar).
+function Personalizar({ a }: { a: Linha }) {
+  const salvar = useAcao((aparencia: Linha) => api(`/agentes/${a.id}`, 'PATCH', { aparencia }));
+  const espera = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const mudar = (k: 'luz' | 'corpo') => (v: string, depois = false) => {
+    clearTimeout(espera.current);
+    const ir = () => salvar.mutate({ ...a.aparencia, [k]: v });
+    if (depois) espera.current = setTimeout(ir, 400); else ir();
+  };
+  return (
+    <details className="personalizar" open>
+      <summary>Personalizar aparência</summary>
+      <Cores rotulo="Cor das luzes" cores={LUZES} valor={luzDe(a)} escolher={mudar('luz')} />
+      <Cores rotulo="Cor do corpo" cores={CORPOS} valor={a.aparencia?.corpo ?? '#e8ebf0'} escolher={mudar('corpo')} />
+      {(a.aparencia?.luz || a.aparencia?.corpo) && <button className="link" onClick={() => salvar.mutate({})}>voltar ao padrão</button>}
+    </details>
   );
 }

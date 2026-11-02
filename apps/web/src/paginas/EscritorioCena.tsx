@@ -1,9 +1,9 @@
 // Cena 3D do escritório: sala escura com neon laranja, núcleo holográfico, robôs nas mesas e telões com dados reais.
 // Tudo é geometria simples + texturas desenhadas em canvas 2D (sem modelos nem fontes externas).
 import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Html, MeshReflectorMaterial, OrbitControls } from '@react-three/drei';
-import { CanvasTexture, DoubleSide, Shape, SRGBColorSpace, type Group, type Mesh } from 'three';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { CameraControls, Html, MeshReflectorMaterial } from '@react-three/drei';
+import { Box3, CanvasTexture, DoubleSide, Shape, SRGBColorSpace, Vector3, type Group, type Mesh } from 'three';
 import { brl, type Linha } from '../api';
 import { ESTADO, FUNCAO } from './Agentes';
 
@@ -13,6 +13,14 @@ const COR: Linha = { diretor: '#a78bfa', marketing: '#f472b6', designer: '#fbbf2
 const COR_ESTADO: Linha = { trabalhando: AZUL, aguardando: '#fbbf24', ocioso: '#64748b', pausado: '#475569' };
 // 6 mesas: 4 ao fundo (dos lados do núcleo) e 2 à frente; os robôs olham para o fundo, como na referência.
 const POSICOES: [number, number][] = [[-6.4, -0.2], [-3.2, -0.2], [3.2, -0.2], [6.4, -0.2], [-2.6, 3.6], [2.6, 3.6]];
+
+// Objeto clicável (telões, marca): cursor de mão e clique sem disparar o "clicou no vazio".
+const clicavel = (fn: () => void) => ({
+  onClick: (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); fn(); },
+  onPointerOver: () => (document.body.style.cursor = 'pointer'),
+  onPointerOut: () => (document.body.style.cursor = ''),
+});
+export const luzDe = (a: Linha) => a.aparencia?.luz ?? COR[a.funcao] ?? AZUL;
 
 // ---------- texturas em canvas ----------
 function useTextura(w: number, h: number, desenhar: (g: CanvasRenderingContext2D) => void, deps: unknown[]) {
@@ -60,7 +68,7 @@ const forma = (p: number[][]) => {
   return s;
 };
 
-function Marca() {
+function Marca({ focar }: { focar: () => void }) {
   const [a, b] = useMemo(() => [forma(VL_A), forma(VL_B)], []);
   const texto = useTextura(1400, 520, (g) => {
     g.textBaseline = 'alphabetic';
@@ -73,7 +81,7 @@ function Marca() {
   const extrude = { depth: 0.08, bevelEnabled: false };
   return (
     <group position={[-7.4, 3.2, -6.85]}>
-      <mesh position={[0.6, 0, -0.05]}><boxGeometry args={[6.6, 3.2, 0.06]} /><meshStandardMaterial color="#0d0f16" roughness={0.6} /></mesh>
+      <mesh position={[0.6, 0, -0.05]} {...clicavel(focar)}><boxGeometry args={[6.6, 3.2, 0.06]} /><meshStandardMaterial color="#0d0f16" roughness={0.6} /></mesh>
       <group position={[-1.6, 0.35, 0]} scale={0.95}>
         <mesh><extrudeGeometry args={[a, extrude]} /><meshStandardMaterial color="#2563eb" emissive="#2563eb" emissiveIntensity={1.6} toneMapped={false} /></mesh>
         <mesh><extrudeGeometry args={[b, extrude]} /><meshStandardMaterial color={AZUL} emissive={AZUL} emissiveIntensity={1.6} toneMapped={false} /></mesh>
@@ -118,7 +126,7 @@ function Janela() {
 }
 
 // ---------- telões com dados reais ----------
-function Teloes({ fin, saude, lista }: { fin?: Linha; saude?: Linha; lista: Linha[] }) {
+function Teloes({ fin, saude, lista, focar }: { fin?: Linha; saude?: Linha; lista: Linha[]; focar: (k: string) => void }) {
   const mes = new Date().getMonth();
   const serie = (fin?.mensal ?? []).slice(0, mes + 1).map((m: Linha) => (m.projeto + m.recorrente) / 100);
   const metricas = useTextura(1100, 640, (g) => {
@@ -140,14 +148,14 @@ function Teloes({ fin, saude, lista }: { fin?: Linha; saude?: Linha; lista: Linh
     g.font = `600 32px ${FONTE}`; g.fillText(`Online ${ativos}/${lista.length}`, 70, 104);
     lista.forEach((a, i) => {
       const y = 180 + i * 72;
-      g.fillStyle = COR[a.funcao] ?? '#94a3b8'; g.beginPath(); g.arc(56, y + 18, 18, 0, 7); g.fill();
+      g.fillStyle = luzDe(a); g.beginPath(); g.arc(56, y + 18, 18, 0, 7); g.fill();
       g.fillStyle = '#e2e8f0'; g.font = `600 32px ${FONTE}`; g.fillText(a.nome, 92, y);
       g.fillStyle = '#64748b'; g.font = `400 22px ${FONTE}`; g.fillText(FUNCAO[a.funcao] ?? a.funcao, 92, y + 38);
       const e = a.ativo ? a.estado : 'pausado';
       g.fillStyle = COR_ESTADO[e] ?? '#64748b'; g.font = `600 24px ${FONTE}`; g.textAlign = 'right';
       g.fillText(e === 'pausado' ? 'Pausado' : (ESTADO[e] ?? e), 610, y + 8); g.textAlign = 'left';
     });
-  }, [lista.map((a) => `${a.nome}${a.ativo}${a.estado}`).join()]);
+  }, [lista.map((a) => `${a.nome}${a.ativo}${a.estado}${luzDe(a)}`).join()]);
 
   const sistemas: Linha[] = saude?.sistemas ?? [];
   const ups = sistemas.map((s) => s.uptime_24h).filter((v) => v != null) as number[];
@@ -170,17 +178,17 @@ function Teloes({ fin, saude, lista }: { fin?: Linha; saude?: Linha; lista: Linh
     linha(490, 'Custo da IA hoje', `US$ ${custo.toFixed(2)}`, '#f8fafc');
   }, [uptime, sistemas.length, pendentes, custo.toFixed(2)]);
 
-  const Painel = ({ x, w, map }: { x: number; w: number; map: CanvasTexture }) => (
-    <group position={[x, 3.5, -6.8]}>
+  const Painel = ({ x, w, map, k }: { x: number; w: number; map: CanvasTexture; k: string }) => (
+    <group position={[x, 3.5, -6.8]} {...clicavel(() => focar(k))}>
       <mesh position={[0, 0, -0.04]}><boxGeometry args={[w + 0.12, 2.48, 0.06]} /><meshStandardMaterial color="#05070d" /></mesh>
       <mesh><planeGeometry args={[w, 2.36]} /><meshBasicMaterial map={map} toneMapped={false} /></mesh>
     </group>
   );
   return (
     <>
-      <Painel x={3.95} w={3.7} map={metricas} />
-      <Painel x={7.0} w={2.15} map={agentes} />
-      <Painel x={9.15} w={1.9} map={perf} />
+      <Painel x={3.95} w={3.7} map={metricas} k="metricas" />
+      <Painel x={7.0} w={2.15} map={agentes} k="agentes" />
+      <Painel x={9.15} w={1.9} map={perf} k="perf" />
       <pointLight position={[7.5, 3.4, -5.6]} color={AZUL} intensity={5} distance={6} />
     </>
   );
@@ -280,7 +288,7 @@ function telaEstado(estado: string) {
   return t;
 }
 
-function Robo({ cor, estado }: { cor: string; estado: string }) {
+function Robo({ cor, corpo: corCorpo, estado }: { cor: string; corpo?: string; estado: string }) {
   const corpo = useRef<Group>(null);
   const bracoE = useRef<Group>(null);
   const bracoD = useRef<Group>(null);
@@ -292,7 +300,7 @@ function Robo({ cor, estado }: { cor: string; estado: string }) {
     if (bracoD.current) bracoD.current.rotation.x = 1.05 + (digitando ? Math.cos(t * 13) * 0.06 : 0);
     if (corpo.current) corpo.current.rotation.x = estado === 'ocioso' ? 0.12 + Math.sin(t) * 0.01 : estado === 'pausado' ? 0.18 : -0.06;
   });
-  const branco = estado === 'pausado' ? '#6b7280' : '#e8ebf0';
+  const branco = estado === 'pausado' ? '#6b7280' : (corCorpo ?? '#e8ebf0');
   const luz = estado === 'pausado' ? '#334155' : cor;
   const mat = <meshStandardMaterial color={branco} metalness={0.05} roughness={0.32} />;
   const escuro = <meshStandardMaterial color="#1b1e27" metalness={0.5} roughness={0.4} />;
@@ -368,11 +376,11 @@ function Mesa({ a, x, z, selecionado, onClick, telas }: { a: Linha; x: number; z
       <group position={[0, 0, 0.45]}>
         <mesh position={[0, 0.5, 0]} castShadow><boxGeometry args={[0.7, 0.1, 0.65]} /><meshStandardMaterial color="#17181f" /></mesh>
         <mesh position={[0, 0.98, 0.33]} rotation={[0.08, 0, 0]} castShadow><boxGeometry args={[0.62, 0.86, 0.1]} /><meshStandardMaterial color="#17181f" /></mesh>
-        <mesh position={[0, 0.98, 0.39]} rotation={[0.08, 0, 0]}><boxGeometry args={[0.04, 0.74, 0.02]} /><meshBasicMaterial color={estado === 'pausado' ? '#334155' : COR[a.funcao]} toneMapped={false} /></mesh>
+        <mesh position={[0, 0.98, 0.39]} rotation={[0.08, 0, 0]}><boxGeometry args={[0.04, 0.74, 0.02]} /><meshBasicMaterial color={estado === 'pausado' ? '#334155' : luzDe(a)} toneMapped={false} /></mesh>
         <mesh position={[0, 0.26, 0]}><cylinderGeometry args={[0.04, 0.04, 0.42, 10]} /><meshStandardMaterial color="#2a2c35" metalness={0.8} /></mesh>
         {[0, 1, 2, 3, 4].map((i) => <mesh key={i} position={[Math.cos(i * 1.257) * 0.22, 0.05, Math.sin(i * 1.257) * 0.22]} rotation={[0, -i * 1.257, 0]}><boxGeometry args={[0.44, 0.04, 0.05]} /><meshStandardMaterial color="#2a2c35" /></mesh>)}
       </group>
-      <group position={[0, 0, 0.1]}><Robo cor={COR[a.funcao] ?? AZUL} estado={estado} /></group>
+      <group position={[0, 0, 0.1]}><Robo cor={luzDe(a)} corpo={a.aparencia?.corpo} estado={estado} /></group>
       {estado === 'aguardando' && (
         <mesh ref={alerta} position={[0, 2.75, 0.4]}><octahedronGeometry args={[0.15]} /><meshBasicMaterial color="#fbbf24" toneMapped={false} /></mesh>
       )}
@@ -384,7 +392,63 @@ function Mesa({ a, x, z, selecionado, onClick, telas }: { a: Linha; x: number; z
   );
 }
 
-export function Cena({ lista, sel, setSel, fin, saude }: { lista: Linha[]; sel: string | null; setSel: (id: string) => void; fin?: Linha; saude?: Linha }) {
+// Pontos de vista: [posição da câmera, para onde olha]. Telões e marca são calculados para caber inteiros na tela.
+const TELOES: Record<string, [number, number]> = { metricas: [3.95, 3.7], agentes: [7.0, 2.15], perf: [9.15, 1.9], teloes: [6.55, 7.5] };
+export type Foco = string | null; // null = visão geral; 'metricas' | 'agentes' | 'perf' | 'teloes' | 'marca' | 'agente:<id>'
+
+function Camera({ foco, lista }: { foco: Foco; lista: Linha[] }) {
+  const cc = useRef<CameraControls>(null);
+  const { size } = useThree();
+  const aspecto = size.width / size.height;
+  useEffect(() => {
+    const c = cc.current;
+    if (!c) return;
+    c.setBoundary(new Box3(new Vector3(-11.5, 0.3, -6.6), new Vector3(11.5, 6.2, 40))); // frente aberta: a câmera pode recuar
+    c.boundaryEnclosesCamera = true;
+  }, []);
+  useEffect(() => {
+    const c = cc.current;
+    if (!c) return;
+    // distância para um quadro de largura w e altura h caber na tela, com folga
+    const caber = (w: number, h: number) => {
+      const v = Math.tan((50 / 2) * (Math.PI / 180));
+      return Math.max((h * 1.25) / 2 / v, (w * 1.15) / 2 / (v * aspecto));
+    };
+    if (foco && TELOES[foco]) {
+      const [x, w] = TELOES[foco]!;
+      const d = caber(w, 2.5);
+      void c.setLookAt(x, 3.5, -6.8 + d, x, 3.5, -6.8, true);
+    } else if (foco === 'marca') {
+      void c.setLookAt(-6.8, 3.3, -6.85 + caber(6.8, 3.4), -6.8, 3.3, -6.85, true);
+    } else if (foco?.startsWith('agente:')) {
+      const i = lista.findIndex((a) => a.id === foco.slice(7));
+      const p = POSICOES[i];
+      if (p) void c.setLookAt(p[0] + (p[0] < 0 ? 2.6 : -2.6), 2.5, p[1] + 1.6, p[0], 1.4, p[1] - 0.5, true); // de lado: robô e monitores
+    } else {
+      const k = Math.min(1.35, Math.max(1, 1.2 / aspecto)); // tela estreita (celular): afasta um pouco; o resto se vê girando/aproximando
+      void c.setLookAt(0, 4.6 + 0.8 * (k - 1), -2 + 16.5 * k, 0, 2.3, -2, true);
+    }
+  }, [foco, aspecto, lista]);
+  // Teclado: WASD/setas andam pela sala, Q/E sobem e descem (fora de campos de texto).
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      const c = cc.current, alvo = e.target as HTMLElement;
+      if (!c || alvo.closest('input, textarea, select, [contenteditable]')) return;
+      const k = e.key.toLowerCase(), passo = e.shiftKey ? 1.2 : 0.5;
+      const mov: Record<string, () => unknown> = {
+        w: () => c.forward(passo, true), arrowup: () => c.forward(passo, true), s: () => c.forward(-passo, true), arrowdown: () => c.forward(-passo, true),
+        a: () => c.truck(-passo, 0, true), arrowleft: () => c.truck(-passo, 0, true), d: () => c.truck(passo, 0, true), arrowright: () => c.truck(passo, 0, true),
+        q: () => c.elevate(passo, true), e: () => c.elevate(-passo, true),
+      };
+      if (mov[k]) { e.preventDefault(); mov[k]!(); }
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, []);
+  return <CameraControls ref={cc} makeDefault minDistance={0.6} maxDistance={26} maxPolarAngle={Math.PI / 2 - 0.04} dollyToCursor smoothTime={0.45} />;
+}
+
+export function Cena({ lista, sel, setSel, fin, saude, foco, setFoco }: { lista: Linha[]; sel: string | null; setSel: (id: string) => void; fin?: Linha; saude?: Linha; foco: Foco; setFoco: (f: Foco) => void }) {
   const telas = useMemo(() => ({ trabalhando: telaEstado('trabalhando'), aguardando: telaEstado('aguardando'), ocioso: telaEstado('ocioso'), pausado: telaEstado('pausado') }), []);
   useEffect(() => () => Object.values(telas).forEach((t) => t.dispose()), [telas]);
   const algumTrabalhando = lista.some((a) => a.ativo && a.estado === 'trabalhando');
@@ -417,15 +481,15 @@ export function Cena({ lista, sel, setSel, fin, saude }: { lista: Linha[]; sel: 
       {[-4.5, 4.5].map((z) => <mesh key={z} position={[0, 6.36, z]}><boxGeometry args={[24, 0.03, 0.06]} /><meshBasicMaterial color="#e5e7eb" toneMapped={false} transparent opacity={0.6} /></mesh>)}
       <mesh position={[0, 0.06, -6.85]}><boxGeometry args={[24, 0.03, 0.03]} /><meshBasicMaterial color={LARANJA} toneMapped={false} /></mesh>
 
-      <Marca />
+      <Marca focar={() => setFoco('marca')} />
       <Janela />
-      <Teloes fin={fin} saude={saude} lista={lista} />
+      <Teloes fin={fin} saude={saude} lista={lista} focar={setFoco} />
       <Nucleo ativo={algumTrabalhando} />
       <Lounge />
       {([[-11, -6], [-1.9, -5.8], [2.3, -5.8], [11, -1.5], [-11, 7]] as [number, number][]).map(([x, z]) => <Vaso key={`${x}${z}`} position={[x, 0, z]} />)}
 
-      {lista.map((a, i) => POSICOES[i] && <Mesa key={a.id} a={a} x={POSICOES[i]![0]} z={POSICOES[i]![1]} selecionado={a.id === sel} onClick={() => setSel(a.id)} telas={telas} />)}
-      <OrbitControls target={[0, 2.3, -2]} maxPolarAngle={Math.PI / 2.15} minDistance={5} maxDistance={22} enablePan={false} />
+      {lista.map((a, i) => POSICOES[i] && <Mesa key={a.id} a={a} x={POSICOES[i]![0]} z={POSICOES[i]![1]} selecionado={a.id === sel} onClick={() => { setSel(a.id); setFoco(`agente:${a.id}`); }} telas={telas} />)}
+      <Camera foco={foco} lista={lista} />
     </>
   );
 }
