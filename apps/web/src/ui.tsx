@@ -4,7 +4,9 @@ import {
   Activity, Bell, Bot, Box, ChartLine, CircleCheck, CornerDownLeft, LayoutDashboard, LogOut, Menu, MessageSquare,
   Power, Receipt, RotateCw, ScrollText, Search, Server, Settings, ShieldCheck, TrendingUp, Users, X, type LucideProps,
 } from 'lucide-react';
+import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { api, useDados, type Linha } from './api';
+import { lerNumero } from './lib/numero';
 import { avisar, confirmar } from './feedback';
 
 export type Campo = {
@@ -47,13 +49,36 @@ export function Formulario({ campos, inicial, onSalvar, botao = 'Salvar' }:
         );
       })}
       {erro && <p role="alert" className="erro">{erro}</p>}
-      <div><button disabled={salvando}>{salvando ? 'Salvando…' : botao}</button></div>
+      <div><button disabled={salvando} aria-busy={salvando}>{salvando && <RotateCw size={14} className="girando-svg" aria-hidden />}{salvando ? 'Salvando…' : botao}</button></div>
     </form>
   );
 }
 
+// Número que "conta" até o valor quando aparece ou muda.
+export function Contador({ valor }: { valor: string | number }) {
+  const texto = String(valor);
+  const n = lerNumero(texto);
+  const alvo = n?.valor ?? NaN;
+  const [atual, setAtual] = useState(alvo);
+  const de = useRef(0);
+  useEffect(() => {
+    if (!Number.isFinite(alvo) || matchMedia('(prefers-reduced-motion: reduce)').matches) { setAtual(alvo); return; }
+    const inicio = performance.now(), origem = de.current;
+    let id = 0;
+    const passo = (t: number) => {
+      const k = Math.min(1, (t - inicio) / 700), e = 1 - (1 - k) ** 3;
+      setAtual(origem + (alvo - origem) * e);
+      if (k < 1) id = requestAnimationFrame(passo); else de.current = alvo;
+    };
+    id = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(id);
+  }, [alvo]);
+  if (!n || !Number.isFinite(alvo)) return <>{texto}</>;
+  return <>{n.antes}{n.formatar(atual)}{n.depois}</>;
+}
+
 export const Kpi = ({ titulo, valor, sub }: { titulo: string; valor: ReactNode; sub?: ReactNode }) => (
-  <div className="card kpi"><span>{titulo}</span><strong>{valor}</strong>{sub && <small>{sub}</small>}</div>
+  <div className="card kpi"><span>{titulo}</span><strong>{typeof valor === 'string' || typeof valor === 'number' ? <Contador valor={valor} /> : valor}</strong>{sub && <small>{sub}</small>}</div>
 );
 
 const ROTULO: Linha = { verde: 'No ar', amarelo: 'Atenção', vermelho: 'Fora do ar', desconhecido: 'Sem dados' };
@@ -94,6 +119,7 @@ const GRUPOS: [string, Item[]][] = [
   ['Conta', [{ to: '/notificacoes', t: 'Notificações', I: Bell }, { to: '/auditoria', t: 'Auditoria', I: ScrollText }, { to: '/configuracoes', t: 'Configurações', I: Settings }]],
 ];
 const ITENS = GRUPOS.flatMap(([, l]) => l);
+const ABAS: Item[] = ['/', '/sistemas', '/escritorio', '/aprovacoes'].map((to) => ITENS.find((i) => i.to === to)!).map((i) => (i.to === '/' ? { ...i, t: 'Início' } : i.to === '/escritorio' ? { ...i, t: 'Escritório' } : i));
 const tituloDe = (path: string) => ITENS.find((i) => i.to !== '/' && path.startsWith(i.to))?.t ?? (path === '/' ? 'Visão geral' : 'VL Command');
 
 const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -121,7 +147,7 @@ function Paleta({ aberta, fechar }: { aberta: boolean; fechar: () => void }) {
     const b = semAcento(busca.trim());
     return (b ? todas.filter((o) => semAcento(`${o.t} ${o.sub}`).includes(b)) : todas).slice(0, 12);
   }, [busca, clientes.data, sistemas.data, agentes.data]);
-  const ir = (to: string) => { fechar(); nav(to); };
+  const ir = (to: string) => { fechar(); nav(to, { viewTransition: true }); };
   return (
     <dialog ref={dialogo} className="modal paleta" aria-label="Busca rápida" onCancel={(e) => { e.preventDefault(); fechar(); }}
       onClick={(e) => { if (e.target === dialogo.current) fechar(); }}>
@@ -185,7 +211,13 @@ export function Layout() {
   const [paleta, setPaleta] = useState(false);
   const [parado, setParado] = useState<'desligado' | 'reiniciando' | null>(null);
 
-  useEffect(() => { setMenu(false); document.title = `${tituloDe(local.pathname)} · VL Command`; }, [local.pathname]);
+  useEffect(() => {
+    setMenu(false);
+    document.title = `${tituloDe(local.pathname)} · VL Command`;
+    if (!local.hash) window.scrollTo({ top: 0 }); // tela nova começa do topo
+  }, [local.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  // barra no topo só no primeiro carregamento e ao salvar; as atualizações automáticas de fundo não piscam a barra
+  const carregando = useIsFetching({ predicate: (q) => q.state.data === undefined }) + useIsMutating() > 0;
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaleta((v) => !v); } };
     addEventListener('keydown', tecla);
@@ -237,7 +269,7 @@ export function Layout() {
             <div key={g} className="grupo">
               <span className="grupo-titulo">{g}</span>
               {itens.map(({ to, t, I }) => (
-                <NavLink key={to} to={to} end={to === '/'}>
+                <NavLink key={to} to={to} end={to === '/'} viewTransition>
                   <I size={17} aria-hidden /><span>{t}</span>
                   {badge[to] ? <span className="badge" aria-label={`${badge[to]} pendente(s)`}>{badge[to]}</span> : null}
                 </NavLink>
@@ -258,6 +290,7 @@ export function Layout() {
       <div className="veu" onClick={() => setMenu(false)} aria-hidden />
       <div className="principal">
         <header className="topo">
+          <div className={`progresso ${carregando ? 'ativo' : ''}`} aria-hidden />
           <button className="icone so-movel" aria-label={menu ? 'Fechar menu' : 'Abrir menu'} aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X size={20} /> : <Menu size={20} />}</button>
           <button className="busca" onClick={() => setPaleta(true)} aria-label="Busca rápida (Ctrl + K)">
             <Search size={16} aria-hidden /><span>Buscar ou ir para…</span><kbd>Ctrl K</kbd>
@@ -271,6 +304,16 @@ export function Layout() {
         </header>
         <main key={local.pathname} className="pagina"><Outlet /></main>
       </div>
+      {/* celular: atalhos para as telas mais usadas, ao alcance do polegar */}
+      <nav className="abas-movel" aria-label="Atalhos">
+        {ABAS.map(({ to, t, I }) => (
+          <NavLink key={to} to={to} end={to === '/'} viewTransition>
+            <I size={20} aria-hidden /><span>{t}</span>
+            {badge[to] ? <span className="badge">{badge[to]}</span> : null}
+          </NavLink>
+        ))}
+        <button onClick={() => setMenu(true)} aria-label="Abrir menu completo"><Menu size={20} aria-hidden /><span>Menu</span></button>
+      </nav>
       <Paleta aberta={paleta} fechar={() => setPaleta(false)} />
     </div>
   );

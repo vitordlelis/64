@@ -31,6 +31,6 @@ export const brl = (cent: number | null | undefined) =>
   ((cent ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const data = (d: string | null | undefined) =>
   !d ? '—' : d.length === 10 ? d.split('-').reverse().join('/') : new Date(d).toLocaleString('pt-BR');
-export const pct = (x: number | null | undefined, casas = 1) => (x == null ? '—' : `${(x * 100).toFixed(casas)}%`);
+export const pct = (x: number | null | undefined, casas = 1) => (x == null ? '—' : `${(x * 100).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })}%`);
 export const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 export const hoje = () => new Date().toLocaleDateString('sv-SE'); // AAAA-MM-DD no fuso local

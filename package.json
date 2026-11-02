@@ -7,7 +7,7 @@
     "dev:worker": "pnpm --filter api worker",
     "dev:web": "pnpm --filter web dev",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter api test",
+    "test": "pnpm --filter web test && pnpm --filter api test",
     "build": "pnpm --filter web build"
   }
 }

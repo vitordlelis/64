@@ -59,7 +59,7 @@ kbd { font: 600 .68rem ui-monospace, monospace; padding: .12rem .4rem; border-ra
 .sino .ponto { position: absolute; top: .45rem; right: .5rem; width: .5rem; height: .5rem; border-radius: 50%; background: var(--vermelho); box-shadow: 0 0 0 2px #07080d, 0 0 8px var(--vermelho); }
 .so-movel { display: none !important; }
 .veu { display: none; }
-main.pagina { padding: 1.75rem 2rem 3rem; width: 100%; max-width: 1440px; animation: entrar .38s cubic-bezier(.2, .7, .2, 1) both; }
+main.pagina { padding: 1.75rem 2rem 3rem; width: 100%; max-width: 1440px; }
 @keyframes entrar { from { opacity: 0; transform: translateY(8px); } }
 .tela-carregando { min-height: 100vh; display: grid; place-items: center; }
 .titulo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
@@ -325,7 +325,7 @@ button:active:not(:disabled) { transform: translateY(1px) scale(.99); }
   .bento { grid-template-columns: 1fr; } .bento .g2, .bento .g4 { grid-column: auto; } .bento .alto { grid-row: auto; }
   .bento .grande { font-size: 2.4rem; }
   .equipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .avisos { left: 1rem; right: 1rem; bottom: 1rem; width: auto; }
+  .avisos { left: 1rem; right: 1rem; bottom: calc(5rem + env(safe-area-inset-bottom)); width: auto; }
   dialog.modal { margin: auto auto 0; border-radius: 20px 20px 0 0; width: 100vw; max-width: 100vw; }
   dialog.modal[open] { animation: subir-folha .28s cubic-bezier(.2, .8, .2, 1); }
   dialog.paleta { margin-top: 8vh; border-radius: 18px; width: calc(100vw - 1.5rem); }
@@ -387,3 +387,51 @@ a.botao.secundario { background: rgba(255, 255, 255, .06); border: 1px solid var
   .lateral nav a { padding: .36rem .7rem; }
   .grupo { margin-top: .5rem; }
 }
+
+/* ---------- movimento e resposta (vale para todas as telas) ---------- */
+html { scroll-behavior: smooth; }
+/* troca de tela: o conteúdo entra em cascata (título, depois cada bloco) */
+main.pagina > * { animation: entrar .5s cubic-bezier(.2, .7, .2, 1) both; }
+.kpis > *, .bento > *, .grid2 > *, .equipe > *, .tops > *, .conexoes > * { animation: entrar .55s cubic-bezier(.2, .7, .2, 1) both; }
+main.pagina > :nth-child(2), .kpis > :nth-child(2), .bento > :nth-child(2), .grid2 > :nth-child(2), .equipe > :nth-child(2), .tops > :nth-child(2), .conexoes > :nth-child(2) { animation-delay: .05s; }
+main.pagina > :nth-child(3), .kpis > :nth-child(3), .bento > :nth-child(3), .grid2 > :nth-child(3), .equipe > :nth-child(3), .tops > :nth-child(3), .conexoes > :nth-child(3) { animation-delay: .1s; }
+main.pagina > :nth-child(4), .kpis > :nth-child(4), .bento > :nth-child(4), .grid2 > :nth-child(4), .equipe > :nth-child(4), .tops > :nth-child(4), .conexoes > :nth-child(4) { animation-delay: .15s; }
+main.pagina > :nth-child(5), .kpis > :nth-child(5), .bento > :nth-child(5), .grid2 > :nth-child(5), .equipe > :nth-child(5), .conexoes > :nth-child(5) { animation-delay: .2s; }
+main.pagina > :nth-child(n+6), .bento > :nth-child(n+6), .equipe > :nth-child(n+6) { animation-delay: .25s; }
+/* linhas de tabela e itens de lista chegam um a um (novas linhas também) */
+tbody tr, .lista > li { animation: subir .35s ease both; }
+tbody tr:nth-child(2), .lista > li:nth-child(2) { animation-delay: .03s; } tbody tr:nth-child(3), .lista > li:nth-child(3) { animation-delay: .06s; }
+tbody tr:nth-child(4), .lista > li:nth-child(4) { animation-delay: .09s; } tbody tr:nth-child(5), .lista > li:nth-child(5) { animation-delay: .12s; }
+tbody tr:nth-child(n+6), .lista > li:nth-child(n+6) { animation-delay: .15s; }
+/* troca de tela com cross-fade nativo do navegador (Chrome/Edge) */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .2s; }
+
+/* toque e foco */
+button:active:not(:disabled), a.botao:active, .membro:active { transform: scale(.97); }
+button[aria-busy="true"] { display: inline-flex; align-items: center; gap: .45rem; cursor: progress; }
+.kpi { transition: transform .25s, border-color .25s; }
+.kpi:hover { transform: translateY(-2px); }
+input:user-invalid, select:user-invalid, textarea:user-invalid { border-color: var(--vermelho); box-shadow: 0 0 0 3px rgba(251, 113, 133, .15); }
+input:focus, select:focus, textarea:focus { border-color: rgba(129, 140, 248, .7); box-shadow: 0 0 0 3px rgba(129, 140, 248, .18); outline: none; }
+::selection { background: rgba(129, 140, 248, .35); }
+
+/* barra de carregamento no topo */
+.progresso { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.progresso.ativo { opacity: 1; }
+.progresso::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, #818cf8, #22d3ee, transparent); animation: correr 1.1s ease-in-out infinite; }
+@keyframes correr { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* celular: barra de abas embaixo */
+.abas-movel { display: none; }
+@media (max-width: 1000px) {
+  .abas-movel { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: .3rem .4rem calc(.3rem + env(safe-area-inset-bottom));
+    background: rgba(7, 8, 13, .88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--borda); }
+  .abas-movel a, .abas-movel button { position: relative; display: flex; flex-direction: column; align-items: center; gap: .15rem; padding: .4rem 0; font-size: .68rem; color: var(--suave);
+    background: none; border: 0; border-radius: 12px; text-decoration: none; box-shadow: none; }
+  .abas-movel a.active { color: #fff; }
+  .abas-movel a.active svg { color: #a5b4fc; filter: drop-shadow(0 0 6px rgba(129, 140, 248, .8)); }
+  .abas-movel a.active::before { content: ''; position: absolute; top: -.3rem; width: 26px; height: 3px; border-radius: 0 0 3px 3px; background: #818cf8; box-shadow: 0 0 10px #818cf8; }
+  .abas-movel .badge { position: absolute; top: .1rem; right: calc(50% - 1.4rem); line-height: 1.1rem; min-width: 1.1rem; font-size: .62rem; padding: 0 .3rem; }
+  main.pagina { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
